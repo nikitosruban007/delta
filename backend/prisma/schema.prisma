@@ -226,6 +226,45 @@ model users {
   @@index([email], map: "idx_users_email")
 }
 
+enum ConsultationStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  HOST
+  PARTICIPANT
+}
+
+model Consultation {
+  id            String              @id @default(uuid())
+  title         String
+  description   String?
+  status        ConsultationStatus  @default(SCHEDULED)
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  roomId        String?
+  createdById   String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  participants  ConsultationParticipant[]
+}
+
+model ConsultationParticipant {
+  id             String          @id @default(uuid())
+  consultation   Consultation    @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  consultationId String
+  userId         String
+  role           ParticipantRole @default(PARTICIPANT)
+  joinedAt       DateTime?
+  leftAt         DateTime?
+  createdAt      DateTime        @default(now())
+  @@index([consultationId])
+}
+
 enum invite_status {
   pending
   accepted
