@@ -22,14 +22,23 @@ describe('ConsultationsController (e2e - mocked service)', () => {
     getHistoryForUser: jest.fn((userId) => Promise.resolve([{ id: 'c1', createdById: userId }])),
     emitSignalPlaceholder: jest.fn(() => Promise.resolve(true)),
   };
+  const mockLogger = {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [ConsultationsController],
-      providers: [ConsultationsLogger, { provide: ConsultationsService, useValue: mockService }],
+      providers: [
+        { provide: ConsultationsLogger, useValue: mockLogger },
+        { provide: ConsultationsService, useValue: mockService },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.useLogger(false);
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     await app.init();
   });
