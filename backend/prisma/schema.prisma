@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model audit_logs {
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  action     String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model evaluation_criteria {
+  id                Int                 @id @default(autoincrement())
+  tournament_id     Int?
+  title             String?
+  max_score         Int?
+  weight            Float?
+  tournaments       tournaments?        @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  evaluation_scores evaluation_scores[]
+}
+
+model evaluation_scores {
+  id                  Int                  @id @default(autoincrement())
+  evaluation_id       Int?
+  criterion_id        Int?
+  score               Float?
+  evaluation_criteria evaluation_criteria? @relation(fields: [criterion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  evaluations         evaluations?         @relation(fields: [evaluation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model evaluations {
+  id                Int                 @id @default(autoincrement())
+  submission_id     Int?
+  jury_id           Int?
+  total_score       Float?
+  evaluation_scores evaluation_scores[]
+  users             users?              @relation(fields: [jury_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submissions       submissions?        @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model forum_categories {
+  id           Int            @id @default(autoincrement())
+  title        String?
+  forum_topics forum_topics[]
+}
+
+model forum_posts {
+  id           Int           @id @default(autoincrement())
+  topic_id     Int?
+  author_id    Int?
+  content      String?
+  users        users?        @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forum_topics forum_topics? @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model forum_topics {
+  id               Int               @id @default(autoincrement())
+  category_id      Int?
+  author_id        Int?
+  title            String?
+  forum_posts      forum_posts[]
+  users            users?            @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  forum_categories forum_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model leaderboard_entries {
+  id            Int          @id @default(autoincrement())
+  tournament_id Int?
+  team_id       Int?
+  total_score   Float?
+  rank          Int?
+  teams         teams?       @relation(fields: [team_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tournaments   tournaments? @relation(fields: [tournament_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model notifications {
+  id      Int      @id @default(autoincrement())
+  user_id Int?
+  title   String?
+  is_read Boolean? @default(false)
+  users   users?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model permissions {
+  id               Int                @id @default(autoincrement())
+  code             String             @unique
+  description      String?
+  role_permissions role_permissions[]
+}
+
+model role_permissions {
+  role_id       Int
+  permission_id Int
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roles         roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([role_id, permission_id])
+}
+
+model roles {
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  role_permissions role_permissions[]
+  user_roles       user_roles[]
+}
+
+model rounds {
+  id            Int           @id @default(autoincrement())
+  tournament_id Int?
+  title         String
+  round_order   Int?
+  created_at    DateTime?     @default(now()) @db.Timestamptz(6)
+  tournaments   tournaments?  @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  submissions   submissions[]
+}
+
+model submissions {
+  id          Int                @id @default(autoincrement())
+  team_id     Int?
+  round_id    Int?
+  github_url  String?
+  status      submission_status?
+  created_at  DateTime?          @default(now()) @db.Timestamptz(6)
+  evaluations evaluations[]
+  rounds      rounds?            @relation(fields: [round_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teams       teams?             @relation(fields: [team_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([team_id], map: "idx_submissions_team")
+}
+
+model team_invites {
+  id         Int            @id @default(autoincrement())
+  team_id    Int?
+  email      String
+  status     invite_status? @default(pending)
+  token      String         @unique
+  created_at DateTime?      @default(now()) @db.Timestamptz(6)
+  teams      teams?         @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model team_members {
+  id         Int       @id @default(autoincrement())
+  team_id    Int?
+  user_id    Int?
+  role       String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  teams      teams?    @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([team_id, user_id])
+  @@index([user_id], map: "idx_team_members_user")
+}
+
+model teams {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  captain_id          Int?
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  leaderboard_entries leaderboard_entries[]
+  submissions         submissions[]
+  team_invites        team_invites[]
+  team_members        team_members[]
+  users               users?                @relation(fields: [captain_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tournament_teams    tournament_teams[]
+}
+
+model tournament_teams {
+  id            Int          @id @default(autoincrement())
+  tournament_id Int?
+  team_id       Int?
+  teams         teams?       @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tournaments   tournaments? @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tournament_id, team_id])
+}
+
+model tournaments {
+  id                  Int                   @id @default(autoincrement())
+  title               String
+  description         String?
+  status              tournament_status?
+  created_by          Int?
+  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
+  evaluation_criteria evaluation_criteria[]
+  leaderboard_entries leaderboard_entries[]
+  rounds              rounds[]
+  tournament_teams    tournament_teams[]
+  users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user_roles {
+  id                              Int       @id @default(autoincrement())
+  user_id                         Int?
+  role_id                         Int?
+  assigned_at                     DateTime? @default(now()) @db.Timestamptz(6)
+  roles                           roles?    @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_user_roles_user_idTousers users?    @relation("user_roles_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model users {
+  id                                   Int             @id @default(autoincrement())
+  email                                String          @unique
+  password_hash                        String
+  name                                 String
+  avatar_url                           String?
+  status                               user_status?    @default(active)
+  created_at                           DateTime?       @default(now()) @db.Timestamptz(6)
+  updated_at                           DateTime?       @default(now()) @db.Timestamptz(6)
+  audit_logs                           audit_logs[]
+  evaluations                          evaluations[]
+  forum_posts                          forum_posts[]
+  forum_topics                         forum_topics[]
+  notifications                        notifications[]
+  team_members                         team_members[]
+  teams                                teams[]
+  tournaments                          tournaments[]
+  user_roles_user_roles_user_idTousers user_roles[]    @relation("user_roles_user_idTousers")
+
+  @@index([email], map: "idx_users_email")
+}
+
+enum invite_status {
+  pending
+  accepted
+  rejected
+}
+
+enum submission_status {
+  draft
+  submitted
+  reviewed
+}
+
+enum tournament_status {
+  draft
+  registration
+  active
+  finished
+}
+
+enum user_status {
+  active
+  disabled
+}
