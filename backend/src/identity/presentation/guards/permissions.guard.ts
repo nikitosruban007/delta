@@ -2,8 +2,8 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  Reflector,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
 @Injectable()

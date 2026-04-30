@@ -1,24 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { IUserRepository } from '../../application/ports/user-repository.port';
-import { UserAccess } from '../../domain/types/access.types';
+import { UserAccess } from '../../application/types/user-access.type';
+
+type PrismaUserWithAccess = Awaited<
+  ReturnType<PrismaUserRepository['findUserWithAccessRecord']>
+>;
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<UserAccess | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: this.selectUser(),
+    const user = await this.prisma.users.findUnique({
+      where: { id: this.parseId(id) },
     });
+
+    return user ? this.toUserAccess(user) : null;
   }
 
   async findByEmail(email: string): Promise<UserAccess | null> {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { email },
-      select: this.selectUser(),
     });
+
+    return user ? this.toUserAccess(user) : null;
   }
 
   async create(input: {
@@ -27,22 +33,22 @@ export class PrismaUserRepository implements IUserRepository {
     name: string;
     avatarUrl?: string | null;
   }): Promise<UserAccess> {
-    return this.prisma.user.create({
+    const user = await this.prisma.users.create({
       data: {
         email: input.email,
-        passwordHash: input.passwordHash,
+        password_hash: input.passwordHash,
         name: input.name,
-        avatarUrl: input.avatarUrl ?? null,
+        avatar_url: input.avatarUrl ?? null,
       },
-      select: this.selectUser(),
     });
+
+    return this.toUserAccess(user);
   }
 
   async getWithAccessById(id: string): Promise<UserAccess | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
-      select: this.selectUserWithAccess(),
-    });
+    const user = await this.findUserWithAccessRecord(id);
+
+    return user ? this.toUserAccessWithRoles(user) : null;
   }
 
   async assignRole(input: {
@@ -50,60 +56,107 @@ export class PrismaUserRepository implements IUserRepository {
     roleId: string;
     assignedBy?: string | null;
   }): Promise<void> {
-    await this.prisma.userRole.create({
+    await this.prisma.user_roles.create({
       data: {
-        userId: input.userId,
-        roleId: input.roleId,
-        assignedBy: input.assignedBy ?? null,
+        user_id: this.parseId(input.userId),
+        role_id: this.parseId(input.roleId),
       },
     });
   }
 
   async revokeRole(input: { userId: string; roleId: string }): Promise<void> {
-    await this.prisma.userRole.delete({
+    const userRole = await this.prisma.user_roles.findFirst({
       where: {
-        userId_roleId: {
-          userId: input.userId,
-          roleId: input.roleId,
-        },
+        user_id: this.parseId(input.userId),
+        role_id: this.parseId(input.roleId),
+      },
+    });
+
+    if (!userRole) {
+      return;
+    }
+
+    await this.prisma.user_roles.delete({
+      where: {
+        id: userRole.id,
       },
     });
   }
 
-  private selectUser() {
-    return {
-      id: true,
-      email: true,
-      passwordHash: true,
-      name: true,
-      avatarUrl: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    } as const;
-  }
-
-  private selectUserWithAccess() {
-    return {
-      id: true,
-      email: true,
-      passwordHash: true,
-      name: true,
-      avatarUrl: true,
-      isActive: true,
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true,
+  private async findUserWithAccessRecord(id: string) {
+    return this.prisma.users.findUnique({
+      where: { id: this.parseId(id) },
+      include: {
+        user_roles_user_roles_user_idTousers: {
+          include: {
+            roles: {
+              include: {
+                role_permissions: {
+                  include: {
+                    permissions: true,
+                  },
                 },
               },
             },
           },
         },
       },
-    } as const;
+    });
+  }
+
+  private toUserAccess(user: {
+    id: number;
+    email: string;
+    password_hash: string;
+    name: string;
+    avatar_url: string | null;
+    status: 'active' | 'disabled' | null;
+  }): UserAccess {
+    return {
+      id: String(user.id),
+      email: user.email,
+      passwordHash: user.password_hash,
+      name: user.name,
+      avatarUrl: user.avatar_url,
+      isActive: user.status !== 'disabled',
+      roles: [],
+    };
+  }
+
+  private toUserAccessWithRoles(user: NonNullable<PrismaUserWithAccess>): UserAccess {
+    return {
+      id: String(user.id),
+      email: user.email,
+      passwordHash: user.password_hash,
+      name: user.name,
+      avatarUrl: user.avatar_url,
+      isActive: user.status !== 'disabled',
+      roles: user.user_roles_user_roles_user_idTousers
+        .filter((userRole) => userRole.roles)
+        .map((userRole) => ({
+          role: {
+            id: String(userRole.roles!.id),
+            name: userRole.roles!.name,
+            description: userRole.roles!.description,
+            permissions: userRole.roles!.role_permissions.map((rolePermission) => ({
+              permission: {
+                id: String(rolePermission.permissions.id),
+                code: rolePermission.permissions.code,
+                description: rolePermission.permissions.description,
+              },
+            })),
+          },
+        })),
+    };
+  }
+
+  private parseId(value: string): number {
+    const parsed = Number.parseInt(value, 10);
+
+    if (Number.isNaN(parsed)) {
+      throw new Error(`Invalid identity id: ${value}`);
+    }
+
+    return parsed;
   }
 }

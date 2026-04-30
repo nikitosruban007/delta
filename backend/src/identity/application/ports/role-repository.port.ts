@@ -19,6 +19,7 @@ export interface IRoleRepository {
   create(input: {
     name: string;
     description?: string | null;
+    permissionIds?: string[];
   }): Promise<{ id: string; name: string; description: string | null }>;
 
   delete(id: string): Promise<void>;

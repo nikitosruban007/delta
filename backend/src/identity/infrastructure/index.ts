@@ -1,4 +1,4 @@
-export * from './identity.infrastructure.module';
+export * from './identity.tokens';
 export * from './providers/identity.providers';
 export * from './prisma/prisma.constants';
 export * from './prisma/prisma-user.repository';

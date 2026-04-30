@@ -1,4 +1,3 @@
-export * from './identity.presentation.module';
 export * from './controllers/auth.controller';
 export * from './controllers/users.controller';
 export * from './controllers/roles.controller';

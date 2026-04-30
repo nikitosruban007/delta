@@ -15,16 +15,20 @@ export class CreateRoleUseCase {
   ) {}
 
   async execute(input: CreateRoleInput) {
+    const permissionIds: string[] = [];
+
     if (input.permissionCodes?.length) {
       for (const code of input.permissionCodes) {
         const permission = await this.permissions.findByCode(code);
         if (!permission) throw new PermissionNotFoundError();
+        permissionIds.push(permission.id);
       }
     }
 
     return this.roles.create({
       name: input.name,
       description: input.description ?? null,
+      permissionIds,
     });
   }
 }
