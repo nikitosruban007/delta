@@ -1,42 +1,41 @@
-import Image from "next/image";
 import Link from "next/link";
 
-const links = [
-  { label: "Про нас", href: "#about" },
-  { label: "Для кого?", href: "#audience" },
-  { label: "Контакти", href: "#contacts" },
-];
+import BrandMark from "./BrandMark";
 
 export default function Navbar() {
   return (
-    <header className="z-30 w-full border-b border-slate-800 bg-[#143973]">
-      <div className="mx-auto flex h-[72px] w-full max-w-[1200px] items-center justify-between px-4 md:px-8">
-        <Link href="/" className="flex items-center gap-2 text-white">
-          <span className="text-[38px] leading-none max-md:text-[30px]">FoldUp</span>
-          <Image src="/image/orange_icon.png" alt="FoldUp icon" width={40} height={40} />
-        </Link>
+    <header className="sticky top-0 z-30 w-full bg-[#062e64] shadow-[0_12px_32px_rgba(5,28,64,0.18)]">
+      <div className="mx-auto flex min-h-[78px] w-full max-w-[1440px] items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-4 md:min-h-[92px] md:px-12 lg:pl-28 lg:pr-8 xl:pl-36 xl:pr-10">
+        <BrandMark />
 
-        <nav className="hidden items-center gap-7 text-[15px] text-[#dde6fa] lg:flex">
-          {links.map((link) => (
-            <a key={link.label} href={link.href} className="transition-colors hover:text-white">
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 text-[14px] lg:flex">
-            <button className="text-[#f3c234]">UKR</button>
-            <span className="text-red-500">/</span>
-            <button className="text-red-500">ENG</button>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-5 lg:gap-6">
+          <div className="flex items-center gap-3 text-[13px] font-bold sm:gap-4 sm:text-[15px] md:text-[17px]">
+            {/* TODO: Додати логіку перемикання мови тут, коли буде готова локалізація. */}
+            <button
+              type="button"
+              aria-pressed="true"
+              className="text-white transition hover:text-[#dce9ff]"
+            >
+              UKR
+            </button>
+            <button
+              type="button"
+              aria-pressed="false"
+              className="text-[#93a6c4] transition hover:text-[#d4e2f7]"
+            >
+              ENG
+            </button>
           </div>
           <Link
             href="/login"
-            className="rounded-xl border border-[#8cb2e8] px-4 py-2 text-[14px] text-[#d6e7ff] transition hover:bg-[#1c4c95] max-md:hidden"
+            className="hidden rounded-[15px] border border-[#8bbdff] px-6 py-3 text-[17px] font-semibold text-[#e7f2ff] transition hover:bg-[#164984] md:inline-flex"
           >
             Увійти
           </Link>
-          <Link href="/register" className="rounded-xl bg-[#84b6f5] px-4 py-2 text-[14px] text-[#0f2d58] transition hover:bg-[#9ec5f8]">
+          <Link
+            href="/register"
+            className="rounded-[13px] bg-[#9ec8ff] px-4 py-2.5 text-[15px] font-semibold text-[#0a3268] shadow-[0_10px_24px_rgba(116,173,251,0.28)] transition hover:bg-[#b7d8ff] md:rounded-[15px] md:px-7 md:py-3 md:text-[17px]"
+          >
             Почати <span aria-hidden>→</span>
           </Link>
         </div>
