@@ -110,6 +110,9 @@ import { RolesGuard } from './presentation/guards/roles.guard';
     IDENTITY_TOKENS.PERMISSION_REPOSITORY,
     IDENTITY_TOKENS.PASSWORD_HASHER,
     IDENTITY_TOKENS.TOKEN_SERVICE,
+    JwtAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
   ],
 })
 export class IdentityModule {}

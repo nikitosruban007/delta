@@ -14,10 +14,14 @@ export type InAppNotificationView = {
 
 @Injectable()
 export class ListInAppNotificationsUseCase {
+  private readonly inAppNotificationRepository: InAppNotificationRepository;
+
   constructor(
     @Inject(IN_APP_NOTIFICATION_REPOSITORY)
-    private readonly inAppNotificationRepository: InAppNotificationRepository,
-  ) {}
+    inAppNotificationRepository: any,
+  ) {
+    this.inAppNotificationRepository = inAppNotificationRepository;
+  }
 
   async execute(recipientId: string): Promise<InAppNotificationView[]> {
     const notifications =

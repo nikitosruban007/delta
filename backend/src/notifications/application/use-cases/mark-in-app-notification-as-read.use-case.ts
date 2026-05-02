@@ -4,10 +4,14 @@ import { InAppNotificationRepository } from '../ports/in-app-notification.reposi
 
 @Injectable()
 export class MarkInAppNotificationAsReadUseCase {
+  private readonly inAppNotificationRepository: InAppNotificationRepository;
+
   constructor(
     @Inject(IN_APP_NOTIFICATION_REPOSITORY)
-    private readonly inAppNotificationRepository: InAppNotificationRepository,
-  ) {}
+    inAppNotificationRepository: any,
+  ) {
+    this.inAppNotificationRepository = inAppNotificationRepository;
+  }
 
   async execute(notificationId: string): Promise<void> {
     const notification =

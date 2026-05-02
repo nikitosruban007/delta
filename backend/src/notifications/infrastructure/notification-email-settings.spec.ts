@@ -48,4 +48,68 @@ describe('resolveNotificationsEmailSettings', () => {
       }),
     ).toThrow('Missing required environment variable');
   });
+
+  it('parses truthy SMTP secure values', () => {
+    const settings = resolveNotificationsEmailSettings({
+      NOTIFICATIONS_EMAIL_PROVIDER: 'SMTP',
+      NOTIFICATIONS_EMAIL_FROM: 'no-reply@delta.dev',
+      NOTIFICATIONS_SMTP_HOST: 'smtp.delta.dev',
+      NOTIFICATIONS_SMTP_PORT: '465',
+      NOTIFICATIONS_SMTP_SECURE: 'yes',
+      NOTIFICATIONS_SMTP_USER: 'mailer',
+      NOTIFICATIONS_SMTP_PASS: 'secret',
+    });
+
+    expect(settings).toMatchObject({
+      provider: 'smtp',
+      smtp: {
+        secure: true,
+        port: 465,
+      },
+    });
+  });
+
+  it('defaults SMTP secure to false when it is omitted', () => {
+    const settings = resolveNotificationsEmailSettings({
+      NOTIFICATIONS_EMAIL_PROVIDER: 'smtp',
+      NOTIFICATIONS_EMAIL_FROM: 'no-reply@delta.dev',
+      NOTIFICATIONS_SMTP_HOST: 'smtp.delta.dev',
+      NOTIFICATIONS_SMTP_PORT: '587',
+      NOTIFICATIONS_SMTP_USER: 'mailer',
+      NOTIFICATIONS_SMTP_PASS: 'secret',
+    });
+
+    expect(settings).toMatchObject({
+      provider: 'smtp',
+      smtp: {
+        secure: false,
+      },
+    });
+  });
+
+
+  it('throws error for invalid SMTP secure and port values', () => {
+    expect(() =>
+      resolveNotificationsEmailSettings({
+        NOTIFICATIONS_EMAIL_PROVIDER: 'smtp',
+        NOTIFICATIONS_EMAIL_FROM: 'no-reply@delta.dev',
+        NOTIFICATIONS_SMTP_HOST: 'smtp.delta.dev',
+        NOTIFICATIONS_SMTP_PORT: '587',
+        NOTIFICATIONS_SMTP_SECURE: 'maybe',
+        NOTIFICATIONS_SMTP_USER: 'mailer',
+        NOTIFICATIONS_SMTP_PASS: 'secret',
+      }),
+    ).toThrow('must be a boolean value');
+
+    expect(() =>
+      resolveNotificationsEmailSettings({
+        NOTIFICATIONS_EMAIL_PROVIDER: 'smtp',
+        NOTIFICATIONS_EMAIL_FROM: 'no-reply@delta.dev',
+        NOTIFICATIONS_SMTP_HOST: 'smtp.delta.dev',
+        NOTIFICATIONS_SMTP_PORT: '0',
+        NOTIFICATIONS_SMTP_USER: 'mailer',
+        NOTIFICATIONS_SMTP_PASS: 'secret',
+      }),
+    ).toThrow('must be a positive integer');
+  });
 });

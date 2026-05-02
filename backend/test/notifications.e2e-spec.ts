@@ -1,7 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { NotificationsModule } from '../src/notifications/notifications.module';
 
 type DispatchResponseBody = {
   status: string;
@@ -30,7 +30,7 @@ describe('Notifications (e2e)', () => {
     process.env.NOTIFICATIONS_EMAIL_PROVIDER = 'in-memory';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [NotificationsModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();

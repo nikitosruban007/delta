@@ -929,6 +929,31 @@ describe('identity full coverage', () => {
       expect(auth.me.execute).toHaveBeenCalledWith('user-1');
       await app.close();
 
+      const authErrors = {
+        register: { execute: jest.fn().mockRejectedValue(new EmailAlreadyExistsError()) },
+        login: { execute: jest.fn().mockRejectedValue(new InvalidCredentialsError()) },
+        me: { execute: jest.fn().mockRejectedValue(new UserNotFoundError()) },
+      };
+      const authErrorApp = await appWith(
+        [AuthController],
+        [
+          { provide: RegisterUseCase, useValue: authErrors.register },
+          { provide: LoginUseCase, useValue: authErrors.login },
+          { provide: GetMeUseCase, useValue: authErrors.me },
+        ],
+      );
+
+      await request(authErrorApp.getHttpServer())
+        .post('/auth/register')
+        .send({ email: 'user@example.com', password: 'password123', name: 'User' })
+        .expect(409);
+      await request(authErrorApp.getHttpServer())
+        .post('/auth/login')
+        .send({ email: 'user@example.com', password: 'password123' })
+        .expect(401);
+      await request(authErrorApp.getHttpServer()).get('/auth/me').expect(404);
+      await authErrorApp.close();
+
       const roleUseCases = {
         createRole: { execute: jest.fn().mockResolvedValue({ id: 'role-1' }) },
         listRoles: { execute: jest.fn().mockResolvedValue([]) },
@@ -1261,7 +1286,7 @@ describe('identity full coverage', () => {
       await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: 'user@example.com', password: 'wrong-password' })
-        .expect(500);
+        .expect(401);
 
       await request(app.getHttpServer())
         .get('/auth/me')

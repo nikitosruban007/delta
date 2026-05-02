@@ -27,12 +27,18 @@ export type DispatchNotificationResult = {
 
 @Injectable()
 export class DispatchNotificationUseCase {
+  private readonly emailGateway: EmailGateway;
+  private readonly inAppNotificationRepository: InAppNotificationRepository;
+
   constructor(
     @Inject(EMAIL_GATEWAY)
-    private readonly emailGateway: EmailGateway,
+    emailGateway: any,
     @Inject(IN_APP_NOTIFICATION_REPOSITORY)
-    private readonly inAppNotificationRepository: InAppNotificationRepository,
-  ) {}
+    inAppNotificationRepository: any,
+  ) {
+    this.emailGateway = emailGateway;
+    this.inAppNotificationRepository = inAppNotificationRepository;
+  }
 
   async execute(
     command: DispatchNotificationCommand,

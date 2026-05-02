@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Post, Body } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common';
 import { DispatchNotificationUseCase } from '../application/use-cases/dispatch-notification.use-case';
 import { ListInAppNotificationsUseCase } from '../application/use-cases/list-in-app-notifications.use-case';
 import { MarkInAppNotificationAsReadUseCase } from '../application/use-cases/mark-in-app-notification-as-read.use-case';
@@ -6,11 +6,22 @@ import { DispatchNotificationDto } from './dto/dispatch-notification.dto';
 
 @Controller('notifications')
 export class NotificationsController {
+  private readonly dispatchNotificationUseCase: DispatchNotificationUseCase;
+  private readonly listInAppNotificationsUseCase: ListInAppNotificationsUseCase;
+  private readonly markInAppNotificationAsReadUseCase: MarkInAppNotificationAsReadUseCase;
+
   constructor(
-    private readonly dispatchNotificationUseCase: DispatchNotificationUseCase,
-    private readonly listInAppNotificationsUseCase: ListInAppNotificationsUseCase,
-    private readonly markInAppNotificationAsReadUseCase: MarkInAppNotificationAsReadUseCase,
-  ) {}
+    @Inject(DispatchNotificationUseCase)
+    dispatchNotificationUseCase: any,
+    @Inject(ListInAppNotificationsUseCase)
+    listInAppNotificationsUseCase: any,
+    @Inject(MarkInAppNotificationAsReadUseCase)
+    markInAppNotificationAsReadUseCase: any,
+  ) {
+    this.dispatchNotificationUseCase = dispatchNotificationUseCase;
+    this.listInAppNotificationsUseCase = listInAppNotificationsUseCase;
+    this.markInAppNotificationAsReadUseCase = markInAppNotificationAsReadUseCase;
+  }
 
   @Post('dispatch')
   async dispatch(@Body() body: DispatchNotificationDto) {

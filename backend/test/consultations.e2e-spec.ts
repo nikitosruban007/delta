@@ -1,16 +1,144 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { ConsultationsController } from '../src/consultations/consultations.controller';
+import { ConsultationsService } from '../src/consultations/consultations.service';
+import { ConsultationStatus } from '../src/consultations/enums/consultation-status.enum';
+import { ParticipantRole } from '../src/consultations/enums/participant-role.enum';
+import { ConsultationsLogger } from '../src/consultations/utils/logger';
+import { PrismaService } from '../src/prisma/prisma.service';
+
+const createPrismaMock = () => {
+  const consultations = new Map<string, any>();
+  const participants = new Map<string, any>();
+  let consultationSequence = 1;
+  let participantSequence = 1;
+
+  const withParticipants = (consultation: any) => ({
+    ...consultation,
+    participants: [...participants.values()].filter(
+      (participant) => participant.consultationId === consultation.id,
+    ),
+  });
+
+  return {
+    consultation: {
+      create: jest.fn(({ data, include }) => {
+        const id = `consultation-${consultationSequence++}`;
+        const consultation = {
+          id,
+          title: data.title,
+          description: data.description ?? null,
+          status: ConsultationStatus.SCHEDULED,
+          scheduledAt: data.scheduledAt ?? null,
+          startedAt: null,
+          endedAt: null,
+          roomId: null,
+          createdById: data.createdById,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        consultations.set(id, consultation);
+
+        for (const item of data.participants.create) {
+          const participant = {
+            id: `participant-${participantSequence++}`,
+            consultationId: id,
+            userId: item.userId,
+            role: item.role,
+            joinedAt: item.joinedAt ?? null,
+            leftAt: item.leftAt ?? null,
+            createdAt: new Date(),
+          };
+          participants.set(participant.id, participant);
+        }
+
+        return Promise.resolve(include?.participants ? withParticipants(consultation) : consultation);
+      }),
+      findUnique: jest.fn(({ where, include }) => {
+        const consultation = consultations.get(where.id) ?? null;
+        if (!consultation) return Promise.resolve(null);
+        return Promise.resolve(include?.participants ? withParticipants(consultation) : consultation);
+      }),
+      update: jest.fn(({ where, data }) => {
+        const current = consultations.get(where.id);
+        const updated = {
+          ...current,
+          ...data,
+          updatedAt: new Date(),
+        };
+        consultations.set(where.id, updated);
+        return Promise.resolve(updated);
+      }),
+      findMany: jest.fn(({ where, include }) => {
+        const userId = where.OR[0].createdById;
+        const items = [...consultations.values()]
+          .filter(
+            (consultation) =>
+              consultation.createdById === userId ||
+              [...participants.values()].some(
+                (participant) =>
+                  participant.consultationId === consultation.id &&
+                  participant.userId === userId,
+              ),
+          )
+          .map((consultation) =>
+            include?.participants ? withParticipants(consultation) : consultation,
+          )
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+        return Promise.resolve(items);
+      }),
+    },
+    consultationParticipant: {
+      create: jest.fn(({ data }) => {
+        const participant = {
+          id: `participant-${participantSequence++}`,
+          consultationId: data.consultationId,
+          userId: data.userId,
+          role: data.role ?? ParticipantRole.PARTICIPANT,
+          joinedAt: data.joinedAt ?? null,
+          leftAt: data.leftAt ?? null,
+          createdAt: new Date(),
+        };
+        participants.set(participant.id, participant);
+        return Promise.resolve(participant);
+      }),
+      update: jest.fn(({ where, data }) => {
+        const current = participants.get(where.id);
+        const updated = { ...current, ...data };
+        participants.set(where.id, updated);
+        return Promise.resolve(updated);
+      }),
+      findFirst: jest.fn(({ where }) => {
+        const participant =
+          [...participants.values()].find(
+            (item) =>
+              item.consultationId === where.consultationId &&
+              item.userId === where.userId,
+          ) ?? null;
+
+        return Promise.resolve(participant);
+      }),
+    },
+  };
+};
 
 describe('Consultations (e2e)', () => {
   let app: INestApplication;
   let httpServer: Parameters<typeof request>[0];
 
   beforeAll(async () => {
+    const prisma = createPrismaMock();
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+      controllers: [ConsultationsController],
+      providers: [
+        ConsultationsService,
+        ConsultationsLogger,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
