@@ -1,0 +1,7 @@
+export enum StageStatus {
+  DRAFT = 'DRAFT',
+  OPEN = 'OPEN',
+  SUBMISSION_CLOSED = 'SUBMISSION_CLOSED',
+  REVIEW = 'REVIEW',
+  FINISHED = 'FINISHED',
+}
