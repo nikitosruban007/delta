@@ -1,7 +1,9 @@
+/* istanbul ignore file */
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import * as request from 'supertest';
-import { TournamentsModule } from '../../tournaments.module';
+import request from 'supertest';
+import { TournamentsModule } from '../src/tournaments/tournaments.module';
+import { OrganizerGuard } from '../src/tournaments/presentation/guards/organizer.guard';
 
 describe('TournamentsController (e2e)', () => {
   let app: INestApplication;
@@ -9,7 +11,10 @@ describe('TournamentsController (e2e)', () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [TournamentsModule],
-    }).compile();
+    })
+      .overrideGuard(OrganizerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();

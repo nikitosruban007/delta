@@ -1,6 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { TournamentRepositoryPort, TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
-import { NotificationPort, NOTIFICATION_PORT } from '../ports/notification.port';
+import { TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
+import type { TournamentRepositoryPort } from '../ports/tournament.repository.port';
+import { NOTIFICATION_PORT } from '../ports/notification.port';
+import type { NotificationPort } from '../ports/notification.port';
 import { ScoreStatus } from '../../domain/enums/score-status.enum';
 
 export interface ScoreSubmissionInput {

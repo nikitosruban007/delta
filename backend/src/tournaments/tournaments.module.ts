@@ -1,28 +1,28 @@
 import { Module } from '@nestjs/common';
-import { TournamentsController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/tournaments.controller';
-import { StagesController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/stages.controller';
-import { TeamsController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/teams.controller';
-import { SubmissionsController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/submissions.controller';
-import { AnnouncementsController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/announcements.controller';
-import { JudgesController } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/controllers/judges.controller';
-import { TournamentWsGateway } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/infrastructure/websocket/tournaments.gateway';
-import { PrismaTournamentRepository } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/infrastructure/prisma/tournament.repository';
-import { TournamentCacheService } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/infrastructure/redis/tournament-cache.service';
-import { TournamentEventService } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/presentation/services/tournaments.service';
+import { TournamentsController } from './presentation/controllers/tournaments.controller';
+import { StagesController } from './presentation/controllers/stages.controller';
+import { TeamsController } from './presentation/controllers/teams.controller';
+import { SubmissionsController } from './presentation/controllers/submissions.controller';
+import { AnnouncementsController } from './presentation/controllers/announcements.controller';
+import { JudgesController } from './presentation/controllers/judges.controller';
+import { TournamentWsGateway } from './infrastructure/websocket/tournaments.gateway';
+import { PrismaTournamentRepository } from './infrastructure/prisma/tournament.repository';
+import { TournamentCacheService } from './infrastructure/redis/tournament-cache.service';
+import { TournamentEventService } from './presentation/services/tournaments.service';
 
-import { RegisterTournamentUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/register-tournament.use-case';
-import { PublishTournamentUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/publish-tournament.use-case';
-import { CreateStageUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/create-stage.use-case';
-import { UpdateDeadlineUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/update-deadline.use-case';
-import { RegisterTeamUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/register-team.use-case';
-import { SubmitWorkUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/submit-work.use-case';
-import { CreateAnnouncementUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/create-announcement.use-case';
-import { AssignJudgeUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/assign-judge.use-case';
-import { ScoreSubmissionUseCase } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/use-cases/score-submission.use-case';
+import { RegisterTournamentUseCase } from './application/use-cases/register-tournament.use-case';
+import { PublishTournamentUseCase } from './application/use-cases/publish-tournament.use-case';
+import { CreateStageUseCase } from './application/use-cases/create-stage.use-case';
+import { UpdateDeadlineUseCase } from './application/use-cases/update-deadline.use-case';
+import { RegisterTeamUseCase } from './application/use-cases/register-team.use-case';
+import { SubmitWorkUseCase } from './application/use-cases/submit-work.use-case';
+import { CreateAnnouncementUseCase } from './application/use-cases/create-announcement.use-case';
+import { AssignJudgeUseCase } from './application/use-cases/assign-judge.use-case';
+import { ScoreSubmissionUseCase } from './application/use-cases/score-submission.use-case';
 
-import { TOURNAMENT_REPOSITORY } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/ports/tournament.repository.port';
-import { CACHE_PORT } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/ports/cache.port';
-import { NOTIFICATION_PORT } from '../../../../../../Downloads/tournaments_src_tournaments_full/src/tournaments/application/ports/notification.port';
+import { TOURNAMENT_REPOSITORY } from './application/ports/tournament.repository.port';
+import { CACHE_PORT } from './application/ports/cache.port';
+import { NOTIFICATION_PORT } from './application/ports/notification.port';
 
 @Module({
   controllers: [

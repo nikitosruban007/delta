@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TournamentRepositoryPort, TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
-import { CachePort, CACHE_PORT } from '../ports/cache.port';
-import { NotificationPort, NOTIFICATION_PORT } from '../ports/notification.port';
+import { TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
+import type { TournamentRepositoryPort } from '../ports/tournament.repository.port';
+import { CACHE_PORT } from '../ports/cache.port';
+import type { CachePort } from '../ports/cache.port';
+import { NOTIFICATION_PORT } from '../ports/notification.port';
+import type { NotificationPort } from '../ports/notification.port';
 import { TournamentStatus } from '../../domain/enums/tournament-status.enum';
 
 export interface RegisterTournamentInput {

@@ -190,6 +190,7 @@ model tournaments {
   created_at          DateTime?             @default(now()) @db.Timestamptz(6)
   evaluation_criteria evaluation_criteria[]
   leaderboard_entries leaderboard_entries[]
+  results             results[]
   rounds              rounds[]
   tournament_teams    tournament_teams[]
   users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -218,12 +219,29 @@ model users {
   forum_posts                          forum_posts[]
   forum_topics                         forum_topics[]
   notifications                        notifications[]
+  results                              results[]
   team_members                         team_members[]
   teams                                teams[]
   tournaments                          tournaments[]
   user_roles_user_roles_user_idTousers user_roles[]    @relation("user_roles_user_idTousers")
 
   @@index([email], map: "idx_users_email")
+}
+
+model results {
+  id            Int         @id @default(autoincrement())
+  tournament_id Int
+  user_id       Int
+  score         Float
+  wins          Int         @default(0)
+  time_ms       Int?
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  tournaments   tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tournament_id, user_id], map: "uq_results_tournament_user")
+  @@index([tournament_id], map: "idx_results_tournament")
+  @@index([user_id], map: "idx_results_user")
 }
 
 enum ConsultationStatus {

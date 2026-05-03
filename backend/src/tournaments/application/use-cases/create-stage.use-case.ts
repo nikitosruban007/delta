@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TournamentRepositoryPort, TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
+import { TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
+import type { TournamentRepositoryPort } from '../ports/tournament.repository.port';
 import { StageStatus } from '../../domain/enums/stage-status.enum';
-import { NotificationPort, NOTIFICATION_PORT } from '../ports/notification.port';
+import { NOTIFICATION_PORT } from '../ports/notification.port';
+import type { NotificationPort } from '../ports/notification.port';
 
 export interface CreateStageInput {
   tournamentId: string;
