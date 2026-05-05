@@ -9,15 +9,15 @@ export default function Hero() {
       <Image src={assets.group} alt="" fill priority className="object-cover object-center" />
       <div className="absolute inset-0 bg-gradient-to-r from-white/55 via-white/20 to-transparent" aria-hidden />
 
-      <div className="relative mx-auto min-h-[520px] w-full max-w-[1440px] px-5 py-16 md:min-h-[560px] md:px-12">
-        <div className="relative z-10 mt-20 max-w-[640px] md:ml-28">
-          <h1 className="text-[70px] font-black leading-none tracking-[0.04em] text-[#06265a] drop-shadow-sm md:text-[94px]">FOLDUP</h1>
-          <p className="mt-5 text-[22px] leading-tight text-[#3a4351] md:text-[25px]">
+      <div className="relative mx-auto min-h-[460px] w-full max-w-[1440px] px-5 py-14 md:min-h-[500px] md:px-12">
+        <div className="relative z-10 mt-16 max-w-[640px] md:ml-28">
+          <h1 className="text-[48px] font-black leading-none tracking-[0.04em] text-[#06265a] drop-shadow-sm md:text-[64px]">FOLDUP</h1>
+          <p className="mt-4 text-[18px] leading-tight text-[#3a4351] md:text-[20px]">
             Об&apos;єднуємо інтелект, будуємо майбутнє разом.
           </p>
           <Link
             href="/dashboard"
-            className="mt-9 inline-flex rounded-xl bg-[#ff9812] px-10 py-4 text-[22px] font-extrabold text-white shadow-[0_16px_32px_rgba(255,152,18,0.32)] transition hover:bg-[#ef8700]"
+            className="mt-7 inline-flex rounded-xl bg-[#ff9812] px-10 py-4 text-[18px] font-extrabold text-white shadow-[0_16px_32px_rgba(255,152,18,0.32)] transition hover:bg-[#ef8700]"
           >
             Знайти турнір
           </Link>

@@ -7,6 +7,7 @@ import { ReactNode, useState } from "react";
 
 import { assets } from "@/lib/assets";
 import { AccentDot, DotGrid, SoftPageBackground } from "./Decor";
+import Footer from "./Footer";
 
 export function AuthHeader() {
   return (
@@ -26,9 +27,9 @@ export function AuthHeader() {
 
 export function AuthShell({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#f8fbff] text-[#061733]">
+    <main className="flex min-h-screen flex-col bg-[#f8fbff] text-[#061733]">
       <AuthHeader />
-      <section className="relative isolate mx-auto flex min-h-[calc(100vh-86px)] w-full max-w-[1440px] items-center justify-center overflow-hidden px-5 py-12">
+      <section className="relative isolate mx-auto flex min-h-[calc(100vh-86px)] w-full max-w-[1440px] flex-1 items-center justify-center overflow-hidden px-5 py-12">
         <SoftPageBackground />
         <AccentDot tone="orange" className="left-[22%] top-12 h-28 w-28" />
         <AccentDot tone="red" className="right-[20%] top-8 h-28 w-28" />
@@ -44,6 +45,7 @@ export function AuthShell({ title, children }: { title: string; children: ReactN
           {children}
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

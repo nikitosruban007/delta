@@ -70,11 +70,11 @@ export default function Features() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <Link href="/dashboard" className="flex items-center justify-center gap-4 rounded-[16px] bg-[#ff9812] px-8 py-7 text-2xl font-extrabold text-white shadow-[0_18px_36px_rgba(255,152,18,0.28)] transition hover:bg-[#ef8700]">
-            <Trophy className="size-8" /> Знайти турнір
+          <Link href="/dashboard" className="flex items-center justify-center gap-3 rounded-[16px] bg-[#ff9812] px-6 py-5 text-lg font-extrabold text-white shadow-[0_18px_36px_rgba(255,152,18,0.28)] transition hover:bg-[#ef8700]">
+            <Trophy className="size-6" /> Знайти турнір
           </Link>
-          <Link href="/register" className="flex items-center justify-center gap-4 rounded-[16px] bg-[#f2474e] px-8 py-7 text-2xl font-extrabold text-white shadow-[0_18px_36px_rgba(242,71,78,0.24)] transition hover:bg-[#df3941]">
-            <UserPlus className="size-8" /> Зареєструватися
+          <Link href="/register" className="flex items-center justify-center gap-3 rounded-[16px] bg-[#f2474e] px-6 py-5 text-lg font-extrabold text-white shadow-[0_18px_36px_rgba(242,71,78,0.24)] transition hover:bg-[#df3941]">
+            <UserPlus className="size-6" /> Зареєструватися
           </Link>
         </div>
 
