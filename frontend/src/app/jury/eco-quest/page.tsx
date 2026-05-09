@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Inter } from "next/font/google";
 
-// Підключаємо шрифт Inter
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export default function JuryEcoQuestPage() {
