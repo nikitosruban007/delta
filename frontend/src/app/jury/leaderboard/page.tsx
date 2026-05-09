@@ -5,9 +5,8 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export default function LeaderboardPage() {
-  // ДИНАМІЧНІ ДАНІ: просто додай новий рядок у масив, і таблиця сама оновиться
   const criteria = ["Технічна частина", "Функціональність", "Креативність", "Презентація"];
-  const teamsCount = 12; // Будь-яка кількість команд
+  const teamsCount = 12; 
   const teams = Array.from({ length: teamsCount }, (_, i) => `Команда ${i + 1}`);
 
   return (
@@ -65,7 +64,6 @@ export default function LeaderboardPage() {
                 <td className="border border-black bg-[#5B73E1] text-white px-6 py-3 text-lg font-medium">
                   {team}
                 </td>
-                {/* Створюємо стільки порожніх клітинок, скільки є критеріїв + 1 для суми */}
                 {criteria.map((_, idx) => (
                   <td key={idx} className="border border-black bg-white"></td>
                 ))}
