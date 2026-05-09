@@ -1,15 +1,6 @@
-import Hero from "@/components/landing/Hero";
-import Features from "@/components/landing/Features";
-import Footer from "@/components/shared/Footer";
-import Navbar from "@/components/shared/Navbar";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col bg-[#f8fbff] text-[#061733]">
-      <Navbar />
-      <Hero />
-      <Features />
-      <Footer />
-    </main>
-  );
+export default function HomePage() {
+  // Миттєвий редирект на твою сторінку
+  redirect("/jury/eco-quest");
 }
