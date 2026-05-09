@@ -5,7 +5,6 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export default function SubmissionsPage() {
-  // Створюємо список з 12 команд (можна змінити число на будь-яке)
   const teams = Array.from({ length: 12 }, (_, i) => `Команда ${i + 1}`);
 
   return (
