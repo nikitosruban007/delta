@@ -45,11 +45,12 @@ export default function TournamentSubmissionPage() {
   }, [tournament]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files) {
+    const files = event.target.files;
+    if (!files) {
       return;
     }
 
-    setFiles((prev) => [...prev, ...Array.from(event.target.files)]);
+    setFiles((prev) => [...prev, ...Array.from(files)]);
     event.target.value = "";
   };
 
