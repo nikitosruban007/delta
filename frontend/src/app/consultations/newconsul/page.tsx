@@ -129,7 +129,7 @@ export default function CreateConsultationPage() {
                             {/* File Grid Placeholders */}
                             <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-3 gap-3 max-w-[500px]">
                                 {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="aspect-[16/9] bg-[#D9D9D9] rounded-md w-full"></div>
+                                    <div key={i} className="aspect-[4/3] bg-[#D9D9D9] rounded-md w-full"></div>
                                 ))}
                             </div>
                         </div>
@@ -197,7 +197,8 @@ export default function CreateConsultationPage() {
 
             {/* Footer */}
             <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-                © 2026 FoldUp. Усі права захищено.
+                <p>© 2026 FoldUp. Усі права захищено.</p>
+                <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
             </footer>
         </main>
     );

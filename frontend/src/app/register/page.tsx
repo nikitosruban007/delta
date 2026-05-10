@@ -15,16 +15,17 @@ export default function RegisterPage() {
         <Field icon="mail" placeholder="Електронна пошта" type="email" autoComplete="email" />
         <Field icon="user" placeholder="Логін" autoComplete="username" />
         <PasswordField placeholder="Пароль" autoComplete="new-password" />
-        <PasswordField placeholder="Підтвердити свій пароль" autoComplete="new-password" />
+        <PasswordField placeholder="Підтвердіть пароль" autoComplete="new-password" />
       </div>
 
-      <div className="mt-8">
-        <PrimarySubmitLink href="/profile-setup">Зареєструватися</PrimarySubmitLink>
+      <div className="mx-auto mt-8 max-w-[480px]">
+        <PrimarySubmitLink href="/dashboard">Зареєструватися</PrimarySubmitLink>
       </div>
 
-      <div className="mt-6 text-right">
+      <div className="mt-6 text-center">
+        <span className="text-lg text-[#526079]">Вже маєте акаунт? </span>
         <Link href="/login" className="text-lg font-medium text-[#0a3268] underline transition hover:text-[#1f62df]">
-          Вже маєте акаунт?
+          [Увійти]
         </Link>
       </div>
     </AuthShell>

@@ -1,9 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, Phone, Trophy, UserPlus } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 
 import { DotGrid } from "@/components/shared/Decor";
 import { assets } from "@/lib/assets";
+
+function StarIcon({ className = "" }: { className?: string }) {
+  return (
+    <Image src={assets.mark} alt="" width={32} height={24} className={`h-6 w-auto ${className}`} />
+  );
+}
 
 export default function Features() {
   return (
@@ -14,7 +20,7 @@ export default function Features() {
         <div className="grid gap-8 md:grid-cols-[1fr_220px] md:items-center">
           <div className="space-y-4 text-base leading-7 text-[#061733] md:text-lg">
             <p>
-              FoldUP — це інноваційна платформа для командних змагань, де навчання перетворюється на захопливий квест.
+              FoldUp — це інноваційна платформа для командних змагань, де навчання перетворюється на захопливий квест.
             </p>
             <p>
               Ми стираємо кордони між теорією та практикою, допомагаючи кожному знайти своє місце в цифровій спільноті однодумців.
@@ -30,7 +36,9 @@ export default function Features() {
         </div>
 
         <div id="audience" className="space-y-5">
-          <h2 className="text-[34px] font-black leading-tight text-[#061733] md:text-[48px]">Для кого цей застосунок?</h2>
+          <h2 className="flex items-center gap-3 text-[34px] font-black leading-tight text-[#061733] md:text-[48px]">
+            <StarIcon /> Для кого цей застосунок?
+          </h2>
           <div className="overflow-hidden rounded-[16px] border border-[#dce4f0] bg-white shadow-[0_18px_60px_rgba(18,54,103,0.08)] md:grid md:grid-cols-[300px_1fr]">
             <Image src={assets.landing.hands} alt="Спільна командна робота" width={346} height={438} className="h-full max-h-[330px] w-full object-cover md:max-h-none" />
             <div className="bg-[#eef1f6] p-5 text-base leading-7 text-[#061733] md:p-8">
@@ -38,16 +46,18 @@ export default function Features() {
                 Ми створили простір, де цифровізація служить людям, а не навпаки. Наша платформа — це міст між поколіннями та ролями:
               </p>
               <ul className="list-disc space-y-3 pl-5">
-                <li>Для учнів та студентів: можливість прокачати soft skills, навчитися працювати в команді та розв&apos;язувати реальні кейси у форматі гри.</li>
-                <li>Для вчителів та менторів: зручний інструмент для організації турнірів, автоматизації оцінювання та відстеження прогресу.</li>
-                <li>Для однодумців: завдяки цифровим інструментам ви швидко знаходите партнерів для проєктів, обмінюєтеся досвідом та створюєте спільні продукти.</li>
+                <li><strong>Для учнів та студентів:</strong> Можливість прокачати «soft skills», навчитися працювати в команді та розв&apos;язувати реальні кейси у форматі гри. Це не просто навчання — це пошук друзів та професійне зростання незалежно від віку.</li>
+                <li><strong>Для вчителів та менторів:</strong> Зручний інструмент для організації турнірів, автоматизації оцінювання та відстеження прогресу. Ми даємо можливість навчати цікаво, використовуючи сучасний UX/UI підхід.</li>
+                <li><strong>Для однодумців:</strong> Завдяки цифровим інструментам ви миттєво знаходите партнерів для проєктів, обмінюєтеся досвідом та створюєте спільні продукти.</li>
               </ul>
             </div>
           </div>
         </div>
 
         <div className="space-y-5">
-          <h2 className="text-[34px] font-black leading-tight text-[#061733] md:text-[48px]">Наші досягнення та шлях</h2>
+          <h2 className="flex items-center gap-3 text-[34px] font-black leading-tight text-[#061733] md:text-[48px]">
+            <StarIcon /> Наші досягнення та шлях
+          </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <Image src={assets.landing.achiv1} alt="Команда на зустрічі" width={624} height={245} className="h-full min-h-[170px] w-full rounded-[8px] object-cover shadow-[0_14px_34px_rgba(18,54,103,0.08)]" />
             <div className="relative">
@@ -60,22 +70,27 @@ export default function Features() {
             <div className="p-5 text-base leading-7 text-[#061733] md:p-8">
               <p className="mb-4">Ми трансформуємо процес навчання, перетворюючи його на результативну командну гру:</p>
               <ul className="list-disc space-y-3 pl-5">
-                <li>Ефективність: завдяки цифровізації ми об&apos;єднуємо сотні однодумців, забезпечуючи прозоре оцінювання та високу залученість.</li>
-                <li>Технологічність: платформа побудована на сучасній архітектурі, що гарантує стабільність від пілотних навчань до запуску в різних регіонах.</li>
-                <li>Майбутнє: ми масштабуємо систему, впроваджуючи нові інструменти для аналітики успішності та тіснішої взаємодії між командами.</li>
+                <li><strong>Ефективність:</strong> Завдяки цифровізації ми об&apos;єднуємо сотні однодумців, забезпечуючи прозоре оцінювання та високу залученість учасників.</li>
+                <li><strong>Технологічність:</strong> Платформа побудована на сучасній архітектурі, що гарантує стабільність під час пікових навантажень та зручність у роботі з дедлайнами.</li>
+                <li><strong>Майбутнє:</strong> Ми масштабуємо систему, впроваджуючи нові інструменти для аналітики успішності та ще тіснішої взаємодії між командами.</li>
               </ul>
             </div>
             <Image src={assets.landing.office} alt="Команда в офісі" width={340} height={438} className="h-full max-h-[320px] w-full object-cover md:max-h-none" />
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          <Link href="/dashboard" className="flex items-center justify-center gap-3 rounded-[16px] bg-[#ff9812] px-6 py-5 text-lg font-extrabold text-white shadow-[0_18px_36px_rgba(255,152,18,0.28)] transition hover:bg-[#ef8700]">
-            <Trophy className="size-6" /> Знайти турнір
-          </Link>
-          <Link href="/register" className="flex items-center justify-center gap-3 rounded-[16px] bg-[#f2474e] px-6 py-5 text-lg font-extrabold text-white shadow-[0_18px_36px_rgba(242,71,78,0.24)] transition hover:bg-[#df3941]">
-            <UserPlus className="size-6" /> Зареєструватися
-          </Link>
+        {/* Зацікавило? CTA block */}
+        <div className="text-center">
+          <h2 className="text-[36px] font-black text-[#061733] md:text-[42px]">Зацікавило?</h2>
+          <p className="mt-2 text-lg text-[#526079]">Знаходь однодумців та команду</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-5">
+            <Link href="/dashboard" className="rounded-[16px] bg-[#ff9812] px-8 py-3 text-[15px] font-bold text-white shadow-[0_18px_36px_rgba(255,152,18,0.28)] transition hover:bg-[#ef8700]">
+              Знайти турнір
+            </Link>
+            <Link href="/register" className="rounded-[16px] bg-[#f2474e] px-8 py-3 text-[15px] font-bold text-white shadow-[0_18px_36px_rgba(242,71,78,0.24)] transition hover:bg-[#df3941]">
+              Зареєструватися
+            </Link>
+          </div>
         </div>
 
         <div id="contacts" className="rounded-[18px] border border-[#dce4f0] bg-white p-6 shadow-[0_18px_50px_rgba(18,54,103,0.08)] md:grid md:grid-cols-[1fr_1.2fr] md:items-center md:p-10">
@@ -85,7 +100,7 @@ export default function Features() {
             </div>
             <div>
               <h2 className="text-[28px] font-black text-[#061733] md:text-[34px]">Контактна інформація</h2>
-              <p className="mt-3 text-lg leading-7 text-[#526079]">Зв&apos;яжіться з адміністрацією, якщо виникнуть питання.</p>
+              <p className="mt-3 text-lg leading-7 text-[#526079]">Зв&apos;яжіться з адміністрацією, якщо виникнуть питання:</p>
             </div>
           </div>
           <div className="mt-8 space-y-4 border-[#d8e0ed] md:mt-0 md:border-l md:pl-10">
@@ -99,7 +114,7 @@ export default function Features() {
               <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#eef4ff] text-[#1f62df]">
                 <Phone className="size-6" />
               </span>
-              398-288-4208 x609
+              398-288-4208 ×609
             </p>
           </div>
         </div>

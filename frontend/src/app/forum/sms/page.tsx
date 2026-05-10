@@ -171,7 +171,7 @@ export default function ForumPostPage() {
     </div>
 
     <div className="bg-white border border-[#E0E0E0] rounded-xl p-8 shadow-sm">
-    <h2 className="text-[20px] font-semibold text-[#111] mb-6">Відповісти</h2>
+    <h2 className="text-[20px] font-semibold text-[#111] mb-6">Відповіді</h2>
         <div className="flex gap-6">
     <div className="flex flex-col items-center shrink-0 w-20">
     <img
@@ -199,7 +199,8 @@ export default function ForumPostPage() {
     </div>
 
     <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-        © 2026 FoldUp. Усі права захищено.
+        <p>© 2026 FoldUp. Усі права захищено.</p>
+        <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
     </footer>
     </main>
 );

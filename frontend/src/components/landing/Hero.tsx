@@ -17,7 +17,7 @@ export default function Hero() {
           </p>
           <Link
             href="/dashboard"
-            className="mt-7 inline-flex rounded-xl bg-[#ff9812] px-10 py-4 text-[18px] font-extrabold text-white shadow-[0_16px_32px_rgba(255,152,18,0.32)] transition hover:bg-[#ef8700]"
+            className="mt-7 inline-flex rounded-xl bg-[#ff9812] px-8 py-3 text-[15px] font-bold text-white shadow-[0_16px_32px_rgba(255,152,18,0.32)] transition hover:bg-[#ef8700]"
           >
             Знайти турнір
           </Link>

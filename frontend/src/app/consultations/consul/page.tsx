@@ -9,7 +9,7 @@ export default function ConsultationDetailPage() {
             {/* Header */}
             <header className="flex h-[72px] items-center justify-between bg-[#1B345B] px-8 text-white shrink-0">
                 <Link
-                    href="/dashboard"
+                    href="/consultations"
                     className="flex items-center gap-2 rounded-xl bg-[#E4EDFA] px-5 py-2.5 text-[14px] font-semibold text-[#1B345B] transition hover:bg-[#d0e0f5]"
                 >
                     <span className="text-lg leading-none">←</span> Повернутися
@@ -124,7 +124,8 @@ export default function ConsultationDetailPage() {
 
             {/* Footer */}
             <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-                © 2026 FoldUp. Усі права захищено.
+                <p>© 2026 FoldUp. Усі права захищено.</p>
+                <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
             </footer>
         </main>
     );

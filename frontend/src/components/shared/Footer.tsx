@@ -1,8 +1,8 @@
 export default function Footer() {
   return (
-    <footer className="mt-auto w-full bg-[#cbcbcd] py-7 text-center text-[#484848]">
-      <p className="text-sm">© 2026 FoldUp</p>
-      <p className="mt-3 text-xs">Усі права захищено. [Політика конфіденційності] | [Умови використання] | [Контакти]</p>
+    <footer className="mt-auto w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] border-t border-[#E0E0E0]">
+      <p>© 2026 FoldUp. Усі права захищено.</p>
+      <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
     </footer>
   );
 }

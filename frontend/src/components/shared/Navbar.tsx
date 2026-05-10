@@ -5,7 +5,7 @@ import BrandMark from "./BrandMark";
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-30 w-full bg-[#062e64] shadow-[0_12px_32px_rgba(5,28,64,0.18)]">
-      <div className="mx-auto flex min-h-[78px] w-full max-w-[1440px] items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-4 md:min-h-[92px] md:px-12 lg:pl-28 lg:pr-8 xl:pl-36 xl:pr-10">
+      <div className="mx-auto flex h-[64px] w-full max-w-[1440px] items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-4 md:px-12 lg:pl-28 lg:pr-8 xl:pl-36 xl:pr-10">
         <BrandMark />
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-5 lg:gap-6">
@@ -28,15 +28,15 @@ export default function Navbar() {
           </div>
           <Link
             href="/login"
-            className="hidden rounded-[15px] border border-[#8bbdff] px-6 py-3 text-[17px] font-semibold text-[#e7f2ff] transition hover:bg-[#164984] md:inline-flex"
+            className="hidden items-center gap-1 rounded-[15px] border border-[#8bbdff] px-6 py-2.5 text-[16px] font-semibold text-[#e7f2ff] transition hover:bg-[#164984] md:inline-flex"
           >
-            Увійти
+            Увійти <span aria-hidden>→</span>
           </Link>
           <Link
             href="/register"
-            className="rounded-[13px] bg-[#9ec8ff] px-4 py-2.5 text-[15px] font-semibold text-[#0a3268] shadow-[0_10px_24px_rgba(116,173,251,0.28)] transition hover:bg-[#b7d8ff] md:rounded-[15px] md:px-7 md:py-3 md:text-[17px]"
+            className="hidden items-center gap-1 rounded-[15px] border border-[#8bbdff] bg-[#164984] px-5 py-2.5 text-[16px] font-semibold text-[#e7f2ff] transition hover:bg-[#1a5aa0] md:inline-flex"
           >
-            Почати <span aria-hidden>→</span>
+            Створити профіль <span aria-hidden>→</span>
           </Link>
         </div>
       </div>

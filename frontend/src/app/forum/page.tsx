@@ -147,7 +147,7 @@ export default function ForumPage() {
     className="flex items-center gap-2 bg-[#6082e6] hover:bg-[#4d6bca] transition text-white px-6 py-3 rounded-lg font-medium shadow-sm shrink-0"
     >
     <Plus size={20} />
-    Нова гілка
+    Нова Гілка
     </Link>
     </div>
 
@@ -274,7 +274,8 @@ export default function ForumPage() {
 
     {/* Footer */}
     <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-        © 2026 FoldUp. Усі права захищено.
+        <p>© 2026 FoldUp. Усі права захищено.</p>
+        <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
     </footer>
     </main>
 );

@@ -132,10 +132,10 @@ export default function DashboardPage() {
               </div>
               <span className="text-lg leading-none">→</span>
             </Link>
-            <Link href="#" className="flex items-center gap-3 transition hover:text-[#111]">
+            <Link href="/consultations" className="flex items-center gap-3 transition hover:text-[#111]">
               <MessageCircle size={18} /> Консультації
             </Link>
-            <Link href="#" className="flex items-center gap-3 transition hover:text-[#111]">
+            <Link href="/forum" className="flex items-center gap-3 transition hover:text-[#111]">
               <GraduationCap size={18} /> Форум
             </Link>
             <Link href="#" className="flex items-center justify-between transition hover:text-[#111]">
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         </aside>
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-[26px] font-semibold text-[#111]">Твої активні турніри</h1>
+          <h1 className="flex items-center gap-3 text-[26px] font-semibold text-[#111]"><img src="/image/orange_icon.png" alt="" className="h-6 w-auto" /> Твої активні турніри</h1>
           <div className="mt-5 flex items-center gap-4">
             <div className="flex gap-4 overflow-hidden">
               {Array(3)
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="mt-4 text-right">
                         <Link
-                          href="#"
+                          href="/tournaments/1"
                           className="inline-block rounded-full bg-[#85AAEA] px-6 py-2 text-[11px] font-semibold text-white transition hover:bg-[#7298db]"
                         >
                           Перейти до турніру →
@@ -265,7 +265,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <Link
-                        href="#"
+                        href="/tournaments/1"
                         className={`inline-block rounded-full px-6 py-2 text-[11px] font-semibold text-white transition hover:opacity-90 ${statusConfig[activeTab].buttonBg}`}
                       >
                         Перейти до турніру →
@@ -289,8 +289,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666]">
-        © 2026 FoldUp. Усі права захищено.
+      <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] border-t border-[#E0E0E0]">
+        <p>© 2026 FoldUp. Усі права захищено.</p>
+        <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
       </footer>
     </main>
   );

@@ -184,7 +184,8 @@ export default function CreateForumThreadPage() {
 
             {/* Footer */}
             <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-                © 2026 FoldUp. Усі права захищено.
+                <p>© 2026 FoldUp. Усі права захищено.</p>
+                <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
             </footer>
         </main>
     );

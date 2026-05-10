@@ -117,8 +117,8 @@ export default function ConsultationsPage() {
             <div className="mx-auto w-full max-w-[1000px] px-8 py-12 flex-1">
 
                 {/* Page Titles */}
-                <h1 className="text-[32px] font-bold text-[#111] mb-2 leading-tight">
-                    Консультації
+                <h1 className="flex items-center gap-3 text-[32px] font-bold text-[#111] mb-2 leading-tight">
+                    <img src="/image/orange_icon.png" alt="" className="h-7 w-auto" /> Консультації
                 </h1>
                 <p className="text-[14px] text-[#888] mb-10">
                     Тут ти можеш приєднуватись до запланованих консультацій в рамках Ваших турнірів
@@ -180,7 +180,8 @@ export default function ConsultationsPage() {
 
             {/* Footer */}
             <footer className="w-full bg-[#EAEAEA] py-6 text-center text-[12px] font-medium text-[#666] mt-auto border-t border-[#E0E0E0]">
-                © 2026 FoldUp. Усі права захищено.
+                <p>© 2026 FoldUp. Усі права захищено.</p>
+                <p className="mt-1">[Політика конфіденційності] | [Умови використання] | [Контакти]</p>
             </footer>
         </main>
     );
