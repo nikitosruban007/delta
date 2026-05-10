@@ -16,6 +16,7 @@ import { identityProviders } from './infrastructure/providers/identity.providers
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { IDENTITY_TOKENS } from './infrastructure/identity.tokens';
 import { AuthController } from './presentation/controllers/auth.controller';
+import { ProfileController } from './presentation/controllers/profile.controller';
 import { PermissionsController } from './presentation/controllers/permissions.controller';
 import { RolesController } from './presentation/controllers/roles.controller';
 import { UsersController } from './presentation/controllers/users.controller';
@@ -34,6 +35,7 @@ import { RolesGuard } from './presentation/guards/roles.guard';
   ],
   controllers: [
     AuthController,
+    ProfileController,
     UsersController,
     RolesController,
     PermissionsController,

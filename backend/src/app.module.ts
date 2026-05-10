@@ -7,6 +7,7 @@ import { ForumsModule } from './forums';
 import { ExportModule } from './export/export.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ResultsModule } from './results/results.module';
+import { TournamentsModule } from './tournaments/tournaments.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ResultsModule } from './results/results.module';
     NotificationsModule,
     ConsultationsModule,
     ForumsModule,
+    TournamentsModule,
     LeaderboardModule,
     ResultsModule,
     ExportModule,

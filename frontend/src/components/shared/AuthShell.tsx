@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, Mail, User, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
+import Footer from "./Footer";
 
 import { assets } from "@/lib/assets";
 import { AccentDot, DotGrid, SoftPageBackground } from "./Decor";
@@ -31,14 +32,7 @@ export function AuthHeader() {
 }
 
 export function AuthFooter() {
-  return (
-    <footer className="mt-auto w-full bg-[#cbcbcd] py-5 text-center text-[#484848]">
-      <p className="text-sm">© 2026 FoldUp. Усі права захищено.</p>
-      <p className="mt-2 text-xs">
-        [Політика конфіденційності] | [Умови використання] | [Контакти]
-      </p>
-    </footer>
-  );
+  return <Footer />;
 }
 
 export function AuthShell({ title, children }: { title: string; children: ReactNode }) {
@@ -71,45 +65,94 @@ type FieldProps = {
   placeholder: string;
   type?: string;
   autoComplete?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  error?: string;
+  name?: string;
 };
 
-export function Field({ icon, placeholder, type = "text", autoComplete }: FieldProps) {
+export function Field({
+  icon,
+  placeholder,
+  type = "text",
+  autoComplete,
+  value,
+  onChange,
+  error,
+  name,
+}: FieldProps) {
   const Icon = icon === "mail" ? Mail : icon === "lock" ? Lock : icon === "user-round" ? UserRound : User;
 
   return (
-    <label className="relative block">
-      <Icon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6b7a8d]" aria-hidden />
-      <input
-        type={type}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className="h-14 w-full rounded-lg bg-[#e8eaef] px-14 text-lg text-[#061733] outline-none transition placeholder:text-[#6b7a8d] focus:ring-2 focus:ring-[#74a9f5]/30"
-      />
-    </label>
+    <div>
+      <label className="relative block">
+        <Icon className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6b7a8d]" aria-hidden />
+        <input
+          type={type}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          name={name}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          className={`h-14 w-full rounded-lg px-14 text-lg text-[#061733] outline-none transition placeholder:text-[#6b7a8d] focus:ring-2 ${
+            error
+              ? "bg-red-50 focus:ring-red-300/30"
+              : "bg-[#e8eaef] focus:ring-[#74a9f5]/30"
+          }`}
+        />
+      </label>
+      {error && <p className="mt-1 px-1 text-sm text-red-500">{error}</p>}
+    </div>
   );
 }
 
-export function PasswordField({ placeholder, autoComplete }: { placeholder: string; autoComplete?: string }) {
+type PasswordFieldProps = {
+  placeholder: string;
+  autoComplete?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  error?: string;
+  name?: string;
+};
+
+export function PasswordField({
+  placeholder,
+  autoComplete,
+  value,
+  onChange,
+  error,
+  name,
+}: PasswordFieldProps) {
   const [show, setShow] = useState(false);
 
   return (
-    <label className="relative block">
-      <Lock className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6b7a8d]" aria-hidden />
-      <input
-        type={show ? "text" : "password"}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className="h-14 w-full rounded-lg bg-[#e8eaef] px-14 pr-14 text-lg text-[#061733] outline-none transition placeholder:text-[#6b7a8d] focus:ring-2 focus:ring-[#74a9f5]/30"
-      />
-      <button
-        type="button"
-        onClick={() => setShow((value) => !value)}
-        className="absolute right-5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6b7a8d] transition hover:bg-[#d8dde6]"
-        aria-label={show ? "Приховати пароль" : "Показати пароль"}
-      >
-        {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
-      </button>
-    </label>
+    <div>
+      <label className="relative block">
+        <Lock className="absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6b7a8d]" aria-hidden />
+        <input
+          type={show ? "text" : "password"}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          name={name}
+          value={value}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+          className={`h-14 w-full rounded-lg px-14 pr-14 text-lg text-[#061733] outline-none transition placeholder:text-[#6b7a8d] focus:ring-2 ${
+            error
+              ? "bg-red-50 focus:ring-red-300/30"
+              : "bg-[#e8eaef] focus:ring-[#74a9f5]/30"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6b7a8d] transition hover:bg-[#d8dde6]"
+          aria-label={show ? "Приховати пароль" : "Показати пароль"}
+        >
+          {show ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+        </button>
+      </label>
+      {error && <p className="mt-1 px-1 text-sm text-red-500">{error}</p>}
+    </div>
   );
 }
 

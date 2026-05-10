@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+import { IdentityModule } from '../identity/identity.module';
 import { TournamentsController } from './presentation/controllers/tournaments.controller';
 import { StagesController } from './presentation/controllers/stages.controller';
 import { TeamsController } from './presentation/controllers/teams.controller';
@@ -9,6 +11,7 @@ import { TournamentWsGateway } from './infrastructure/websocket/tournaments.gate
 import { PrismaTournamentRepository } from './infrastructure/prisma/tournament.repository';
 import { TournamentCacheService } from './infrastructure/redis/tournament-cache.service';
 import { TournamentEventService } from './presentation/services/tournaments.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 import { RegisterTournamentUseCase } from './application/use-cases/register-tournament.use-case';
 import { PublishTournamentUseCase } from './application/use-cases/publish-tournament.use-case';
@@ -25,6 +28,7 @@ import { CACHE_PORT } from './application/ports/cache.port';
 import { NOTIFICATION_PORT } from './application/ports/notification.port';
 
 @Module({
+  imports: [PrismaModule, IdentityModule],
   controllers: [
     TournamentsController,
     StagesController,
@@ -34,12 +38,10 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port';
     JudgesController,
   ],
   providers: [
-    // ports
     { provide: TOURNAMENT_REPOSITORY, useClass: PrismaTournamentRepository },
     { provide: CACHE_PORT, useClass: TournamentCacheService },
     { provide: NOTIFICATION_PORT, useClass: TournamentWsGateway },
 
-    // use cases
     RegisterTournamentUseCase,
     PublishTournamentUseCase,
     CreateStageUseCase,
@@ -50,7 +52,6 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port';
     AssignJudgeUseCase,
     ScoreSubmissionUseCase,
 
-    // façade/service
     TournamentEventService,
   ],
   exports: [TOURNAMENT_REPOSITORY],

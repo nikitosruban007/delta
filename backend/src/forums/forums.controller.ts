@@ -37,7 +37,6 @@ type ForumUser = {
 export class ForumsController {
   constructor(private readonly forumsService: ForumsService) {}
 
-  // TODO(frontend): connect forum category list screen to GET /forums/categories.
   @Get('categories')
   @ApiOperation({ summary: 'List forum categories' })
   listCategories() {
@@ -50,21 +49,20 @@ export class ForumsController {
     return this.forumsService.getCategory(id);
   }
 
-  // TODO(frontend): expose admin category creation UI when role-based screens are ready.
   @Post('categories')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create forum category' })
+  @ApiOperation({ summary: 'Create forum category (ADMIN only)' })
   createCategory(@Body() dto: CreateForumCategoryDto) {
     return this.forumsService.createCategory(dto);
   }
 
   @Patch('categories/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update forum category' })
+  @ApiOperation({ summary: 'Update forum category (ADMIN only)' })
   updateCategory(
     @Param('id') id: string,
     @Body() dto: UpdateForumCategoryDto,
@@ -74,14 +72,13 @@ export class ForumsController {
 
   @Delete('categories/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin')
+  @Roles('ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete empty forum category' })
+  @ApiOperation({ summary: 'Delete empty forum category (ADMIN only)' })
   deleteCategory(@Param('id') id: string) {
     return this.forumsService.deleteCategory(id);
   }
 
-  // TODO(frontend): connect forum topic list and search UI to GET /forums/topics.
   @Get('topics')
   @ApiOperation({ summary: 'List forum topics' })
   listTopics(@Query() query: ListForumTopicsQueryDto) {
@@ -94,7 +91,6 @@ export class ForumsController {
     return this.forumsService.getTopic(id);
   }
 
-  // TODO(frontend): wire authenticated create-topic form to POST /forums/topics.
   @Post('topics')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -126,7 +122,6 @@ export class ForumsController {
     return this.forumsService.deleteTopic(id, user);
   }
 
-  // TODO(frontend): connect topic detail thread view to GET /forums/topics/:topicId/posts.
   @Get('topics/:topicId/posts')
   @ApiOperation({ summary: 'List forum topic posts' })
   listPosts(
@@ -136,7 +131,6 @@ export class ForumsController {
     return this.forumsService.listPosts(topicId, query);
   }
 
-  // TODO(frontend): wire reply editor to POST /forums/topics/:topicId/posts.
   @Post('topics/:topicId/posts')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

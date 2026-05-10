@@ -1,4 +1,4 @@
-import { IsArray, IsDateString, IsOptional, IsString, MaxLength, ArrayUnique } from 'class-validator';
+import { IsArray, IsDateString, IsOptional, IsString, MaxLength, ArrayUnique, IsNumber } from 'class-validator';
 
 export class CreateConsultationDto {
   @IsString()
@@ -14,11 +14,11 @@ export class CreateConsultationDto {
   @IsDateString()
   scheduledAt?: string;
 
+  @IsNumber()
+  tournament_id!: number;
+
   @IsArray()
   @ArrayUnique()
   @IsOptional()
   participantIds?: string[] = [];
-
-  @IsString()
-  createdById!: string; // TODO: replace with real user relation after auth/users integration
 }

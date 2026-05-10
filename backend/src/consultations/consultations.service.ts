@@ -9,8 +9,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ConsultationsService {
   constructor(private readonly prisma: PrismaService, private readonly logger: ConsultationsLogger) {}
 
-  async createConsultation(dto: CreateConsultationDto) {
-    const { title, description, scheduledAt, participantIds = [], createdById } = dto;
+  async createConsultation(dto: CreateConsultationDto, createdById: string) {
+    const { title, description, scheduledAt, tournament_id, participantIds = [] } = dto;
+
+    const roomId = crypto.randomUUID();
 
     const consultation = await this.prisma.consultation.create({
       data: {
@@ -18,10 +20,14 @@ export class ConsultationsService {
         description,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
         createdById,
+        tournament_id,
+        roomId,
         participants: {
           create: [
             { userId: createdById, role: ParticipantRole.HOST },
-            ...participantIds.filter((id) => id !== createdById).map((id) => ({ userId: id, role: ParticipantRole.PARTICIPANT })),
+            ...participantIds
+              .filter((id) => id !== createdById)
+              .map((id) => ({ userId: id, role: ParticipantRole.PARTICIPANT })),
           ],
         },
       },
@@ -30,7 +36,7 @@ export class ConsultationsService {
 
     this.logger.info('Consultation created', { consultationId: consultation.id, createdById });
 
-    return consultation;
+    return this.mapConsultation(consultation);
   }
 
   async startConsultation(consultationId: string, userId: string) {
@@ -40,7 +46,6 @@ export class ConsultationsService {
     if (!consultation) throw new NotFoundException('Consultation not found');
 
     if (consultation.createdById !== userId) {
-      // TODO: integrate with real auth/roles
       throw new ForbiddenException('Only host can start consultation');
     }
 
@@ -50,7 +55,7 @@ export class ConsultationsService {
     });
 
     this.logger.info('Consultation started', { consultationId, startedBy: userId });
-    return updated;
+    return this.mapConsultation(updated);
   }
 
   async joinConsultation(consultationId: string, userId: string) {
@@ -93,7 +98,6 @@ export class ConsultationsService {
     const consultation = await this.prisma.consultation.findUnique({ where: { id: consultationId } });
     if (!consultation) throw new NotFoundException('Consultation not found');
     if (consultation.createdById !== userId) {
-      // TODO: integrate with auth
       throw new ForbiddenException('Only host can end consultation');
     }
 
@@ -103,7 +107,16 @@ export class ConsultationsService {
     });
 
     this.logger.info('Consultation ended', { consultationId, endedBy: userId });
-    return updated;
+    return this.mapConsultation(updated);
+  }
+
+  async getById(consultationId: string) {
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id: consultationId },
+      include: { participants: true },
+    });
+    if (!consultation) throw new NotFoundException('Consultation not found');
+    return this.mapConsultation(consultation);
   }
 
   async getHistoryForUser(userId: string) {
@@ -117,10 +130,36 @@ export class ConsultationsService {
       include: { participants: true },
       orderBy: { createdAt: 'desc' },
     });
-    return consultations;
+    return consultations.map((c) => this.mapConsultation(c));
   }
 
-  async emitSignalPlaceholder() {
-    return true;
+  private mapConsultation(c: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    scheduledAt: Date | null;
+    startedAt: Date | null;
+    endedAt: Date | null;
+    roomId: string | null;
+    createdById: string;
+    createdAt: Date;
+    updatedAt: Date;
+    participants?: { id: string; userId: string; role: string }[];
+  }) {
+    return {
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      status: c.status,
+      scheduledAt: c.scheduledAt,
+      startedAt: c.startedAt,
+      endedAt: c.endedAt,
+      roomId: c.roomId,
+      createdById: c.createdById,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+      participants: c.participants ?? [],
+    };
   }
 }

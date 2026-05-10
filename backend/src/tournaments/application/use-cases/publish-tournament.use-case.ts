@@ -22,7 +22,7 @@ export class PublishTournamentUseCase {
     if (tournament.status !== TournamentStatus.DRAFT) throw new BadRequestException('Only draft tournaments can be published');
 
     const updated = await this.repo.updateTournament(tournamentId, {
-      status: TournamentStatus.PUBLISHED,
+      status: TournamentStatus.REGISTRATION_OPEN,
     });
 
     await this.cache.set(`tournaments:${tournamentId}`, updated, 300);

@@ -1,10 +1,13 @@
-import { Body, Controller, Post, Put, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, ForbiddenException, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateStageUseCase } from '../../application/use-cases/create-stage.use-case';
 import { UpdateDeadlineUseCase } from '../../application/use-cases/update-deadline.use-case';
 import { CreateStageDto } from '../dto/create-stage.dto';
 import { UpdateDeadlineDto } from '../dto/update-deadline.dto';
-import { OrganizerGuard } from '../guards/organizer.guard';
+import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
+
+type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
 
 @ApiTags('stages')
 @ApiBearerAuth()
@@ -15,9 +18,13 @@ export class StagesController {
     private readonly updateDeadline: UpdateDeadlineUseCase,
   ) {}
 
-  @UseGuards(OrganizerGuard)
   @Post()
-  create(@Body() dto: CreateStageDto) {
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Create stage (Admin/Organizer only)' })
+  create(@CurrentUser() user: AuthUser, @Body() dto: CreateStageDto) {
+    if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
+      throw new ForbiddenException('Only admins and organizers can create stages');
+    }
     return this.createStage.execute({
       tournamentId: dto.tournamentId,
       title: dto.title,
@@ -27,9 +34,13 @@ export class StagesController {
     });
   }
 
-  @UseGuards(OrganizerGuard)
   @Put('deadline')
-  update(@Body() dto: UpdateDeadlineDto) {
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update stage deadline (Admin/Organizer only)' })
+  update(@CurrentUser() user: AuthUser, @Body() dto: UpdateDeadlineDto) {
+    if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
+      throw new ForbiddenException('Only admins and organizers can update deadlines');
+    }
     return this.updateDeadline.execute({
       entityType: dto.entityType,
       entityId: dto.entityId,

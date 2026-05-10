@@ -1,8 +1,11 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, ForbiddenException, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RegisterTeamUseCase } from '../../application/use-cases/register-team.use-case';
 import { RegisterTeamDto } from '../dto/register-team.dto';
-import { TeamGuard } from '../guards/team.guard';
+import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
+
+type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
 
 @ApiTags('teams')
 @ApiBearerAuth()
@@ -10,9 +13,15 @@ import { TeamGuard } from '../guards/team.guard';
 export class TeamsController {
   constructor(private readonly registerTeam: RegisterTeamUseCase) {}
 
-  @UseGuards(TeamGuard)
   @Post('register')
-  register(@Body() dto: RegisterTeamDto) {
-    return this.registerTeam.execute(dto);
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Register a team for a tournament' })
+  register(@CurrentUser() user: AuthUser, @Body() dto: RegisterTeamDto) {
+    if (!user) throw new ForbiddenException('Authentication required');
+    return this.registerTeam.execute({
+      tournamentId: dto.tournamentId,
+      captainId: user.id,
+      name: dto.name,
+    });
   }
 }

@@ -1,9 +1,6 @@
 export enum TournamentStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-  REGISTRATION_OPEN = 'REGISTRATION_OPEN',
-  ACTIVE = 'ACTIVE',
-  REVIEW = 'REVIEW',
-  FINISHED = 'FINISHED',
-  ARCHIVED = 'ARCHIVED',
+  DRAFT = 'draft',
+  REGISTRATION_OPEN = 'registration',
+  ACTIVE = 'active',
+  FINISHED = 'finished',
 }

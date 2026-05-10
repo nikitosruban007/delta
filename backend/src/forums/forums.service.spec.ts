@@ -3,17 +3,21 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { ForumsService } from './forums.service';
 
 const author = { id: 7, name: 'Ada', avatar_url: null };
 const category = { id: 3, title: 'General' };
+
+const TOPIC_DATE = new Date('2026-01-01T00:00:00.000Z');
+const POST_DATE = new Date('2026-01-01T00:00:00.000Z');
 
 const topicItem = {
   id: 11,
   category_id: category.id,
   author_id: author.id,
   title: 'First topic',
+  tags: [],
+  created_at: TOPIC_DATE,
   users: author,
   forum_categories: category,
   _count: { forum_posts: 2 },
@@ -24,6 +28,7 @@ const postItem = {
   topic_id: topicItem.id,
   author_id: author.id,
   content: 'Hello',
+  created_at: POST_DATE,
   users: author,
 };
 
@@ -59,7 +64,7 @@ describe('ForumsService', () => {
       },
     };
 
-    return prisma as unknown as jest.Mocked<PrismaService>;
+    return prisma as any;
   };
 
   const serviceWith = () => {
@@ -140,6 +145,8 @@ describe('ForumsService', () => {
         {
           id: 11,
           title: 'First topic',
+          tags: [],
+          createdAt: TOPIC_DATE,
           author: { id: 7, name: 'Ada', avatarUrl: null },
           category: { id: 3, title: 'General' },
           postsCount: 2,
@@ -175,6 +182,8 @@ describe('ForumsService', () => {
         {
           id: 11,
           title: 'First topic',
+          tags: [],
+          createdAt: TOPIC_DATE,
           author: null,
           category: null,
           postsCount: 2,
@@ -205,6 +214,8 @@ describe('ForumsService', () => {
     await expect(service.getTopic('11')).resolves.toEqual({
       id: 11,
       title: 'First topic',
+      tags: [],
+      createdAt: TOPIC_DATE,
       author: null,
       category: null,
       postsCount: 0,
@@ -231,7 +242,7 @@ describe('ForumsService', () => {
     ).resolves.toMatchObject({ id: 11, postsCount: 2 });
 
     expect(tx.forum_topics.create).toHaveBeenCalledWith({
-      data: { category_id: 3, author_id: 7, title: 'First topic' },
+      data: { category_id: 3, author_id: 7, title: 'First topic', tags: [] },
     });
     expect(tx.forum_posts.create).toHaveBeenCalledWith({
       data: { topic_id: 11, author_id: 7, content: 'Hello' },
@@ -257,7 +268,7 @@ describe('ForumsService', () => {
       ),
     ).resolves.toMatchObject({ id: 11, title: 'Updated' });
 
-    await expect(service.deleteTopic('11', { id: 7, roles: ['Admin'] })).resolves.toEqual({
+    await expect(service.deleteTopic('11', { id: 7, roles: ['ADMIN'] })).resolves.toEqual({
       id: 11,
       deleted: true,
     });
@@ -344,7 +355,7 @@ describe('ForumsService', () => {
     prisma.forum_posts.delete.mockResolvedValue(postItem as never);
 
     await expect(service.listPosts('11', { page: 1, limit: 10 })).resolves.toEqual({
-      items: [{ id: 21, topicId: 11, content: 'Hello', author: { id: 7, name: 'Ada', avatarUrl: null } }],
+      items: [{ id: 21, topicId: 11, content: 'Hello', createdAt: POST_DATE, author: { id: 7, name: 'Ada', avatarUrl: null } }],
       pagination: { page: 1, limit: 10, total: 1, pages: 1 },
     });
     await expect(
@@ -353,6 +364,7 @@ describe('ForumsService', () => {
       id: 21,
       topicId: 11,
       content: 'Reply',
+      createdAt: POST_DATE,
       author: { id: 7, name: 'Ada', avatarUrl: null },
     });
     await expect(
@@ -361,9 +373,10 @@ describe('ForumsService', () => {
       id: 21,
       topicId: 11,
       content: 'Updated',
+      createdAt: POST_DATE,
       author: { id: 7, name: 'Ada', avatarUrl: null },
     });
-    await expect(service.deletePost('21', { id: 99, roles: ['Admin'] })).resolves.toEqual({
+    await expect(service.deletePost('21', { id: 99, roles: ['ADMIN'] })).resolves.toEqual({
       id: 21,
       deleted: true,
     });

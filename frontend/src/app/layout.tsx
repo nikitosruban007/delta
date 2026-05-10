@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "@/components/shared/Providers";
 
 export const metadata: Metadata = {
   title: "FoldUP | Об'єднуємо інтелект",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" className="scroll-smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

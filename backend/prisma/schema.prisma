@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -36,17 +36,21 @@ model evaluation_scores {
 
 model evaluations {
   id                Int                 @id @default(autoincrement())
-  submission_id     Int?
-  jury_id           Int?
+  submission_id     Int
+  jury_id           Int
   total_score       Float?
+  comment           String?
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
   evaluation_scores evaluation_scores[]
-  users             users?              @relation(fields: [jury_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  submissions       submissions?        @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users               @relation(fields: [jury_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  submissions       submissions         @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([submission_id, jury_id])
 }
 
 model forum_categories {
   id           Int            @id @default(autoincrement())
-  title        String?
+  title        String
   forum_topics forum_topics[]
 }
 
@@ -55,6 +59,7 @@ model forum_posts {
   topic_id     Int?
   author_id    Int?
   content      String?
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
   users        users?        @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   forum_topics forum_topics? @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
@@ -64,6 +69,8 @@ model forum_topics {
   category_id      Int?
   author_id        Int?
   title            String?
+  created_at       DateTime?         @default(now()) @db.Timestamptz(6)
+  tags             String[]          @default([])
   forum_posts      forum_posts[]
   users            users?            @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   forum_categories forum_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -80,11 +87,13 @@ model leaderboard_entries {
 }
 
 model notifications {
-  id      Int      @id @default(autoincrement())
-  user_id Int?
-  title   String?
-  is_read Boolean? @default(false)
-  users   users?   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id         Int       @id @default(autoincrement())
+  user_id    Int?
+  title      String?
+  body       String?
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model permissions {
@@ -113,24 +122,30 @@ model roles {
 
 model rounds {
   id            Int           @id @default(autoincrement())
-  tournament_id Int?
+  tournament_id Int
   title         String
+  description   String?
   round_order   Int?
+  deadline_at   DateTime?     @db.Timestamptz(6)
   created_at    DateTime?     @default(now()) @db.Timestamptz(6)
-  tournaments   tournaments?  @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tournaments   tournaments   @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   submissions   submissions[]
 }
 
 model submissions {
-  id          Int                @id @default(autoincrement())
-  team_id     Int?
-  round_id    Int?
-  github_url  String?
-  status      submission_status?
-  created_at  DateTime?          @default(now()) @db.Timestamptz(6)
-  evaluations evaluations[]
-  rounds      rounds?            @relation(fields: [round_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  teams       teams?             @relation(fields: [team_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id            Int                @id @default(autoincrement())
+  team_id       Int
+  round_id      Int
+  github_url    String?
+  video_url     String?
+  live_demo_url String?
+  description   String?
+  status        submission_status? @default(draft)
+  created_at    DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?          @default(now()) @db.Timestamptz(6)
+  evaluations   evaluations[]
+  rounds        rounds             @relation(fields: [round_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teams         teams              @relation(fields: [team_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([team_id], map: "idx_submissions_team")
 }
@@ -149,7 +164,7 @@ model team_members {
   id         Int       @id @default(autoincrement())
   team_id    Int?
   user_id    Int?
-  role       String?
+  role       String?   @default("member")
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   teams      teams?    @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -175,6 +190,7 @@ model tournament_teams {
   id            Int          @id @default(autoincrement())
   tournament_id Int?
   team_id       Int?
+  registered_at DateTime?    @default(now()) @db.Timestamptz(6)
   teams         teams?       @relation(fields: [team_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   tournaments   tournaments? @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -182,18 +198,25 @@ model tournament_teams {
 }
 
 model tournaments {
-  id                  Int                   @id @default(autoincrement())
-  title               String
-  description         String?
-  status              tournament_status?
-  created_by          Int?
-  created_at          DateTime?             @default(now()) @db.Timestamptz(6)
-  evaluation_criteria evaluation_criteria[]
-  leaderboard_entries leaderboard_entries[]
-  results             results[]
-  rounds              rounds[]
-  tournament_teams    tournament_teams[]
-  users               users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                    Int                   @id @default(autoincrement())
+  title                 String
+  description           String?
+  status                tournament_status?    @default(draft)
+  created_by            Int?
+  registration_deadline DateTime?             @db.Timestamptz(6)
+  starts_at             DateTime?             @db.Timestamptz(6)
+  ends_at               DateTime?             @db.Timestamptz(6)
+  max_teams             Int?                  @default(50)
+  team_size_min         Int?                  @default(3)
+  team_size_max         Int?                  @default(5)
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  evaluation_criteria   evaluation_criteria[]
+  leaderboard_entries   leaderboard_entries[]
+  results               results[]
+  rounds                rounds[]
+  tournament_teams      tournament_teams[]
+  consultations         Consultation[]
+  users                 users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model user_roles {
@@ -244,6 +267,38 @@ model results {
   @@index([user_id], map: "idx_results_user")
 }
 
+model Consultation {
+  id             String                    @id @default(uuid())
+  title          String
+  description    String?
+  status         ConsultationStatus        @default(SCHEDULED)
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  roomId         String?
+  createdById    String
+  tournament_id  Int                       @default(1)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  participants   ConsultationParticipant[]
+  tournaments    tournaments               @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tournament_id], map: "idx_consultation_tournament")
+}
+
+model ConsultationParticipant {
+  id             String          @id @default(uuid())
+  consultationId String
+  userId         String
+  role           ParticipantRole @default(PARTICIPANT)
+  joinedAt       DateTime?
+  leftAt         DateTime?
+  createdAt      DateTime        @default(now())
+  consultation   Consultation    @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  @@index([consultationId])
+}
+
 enum ConsultationStatus {
   SCHEDULED
   ACTIVE
@@ -254,33 +309,6 @@ enum ConsultationStatus {
 enum ParticipantRole {
   HOST
   PARTICIPANT
-}
-
-model Consultation {
-  id            String              @id @default(uuid())
-  title         String
-  description   String?
-  status        ConsultationStatus  @default(SCHEDULED)
-  scheduledAt   DateTime?
-  startedAt     DateTime?
-  endedAt       DateTime?
-  roomId        String?
-  createdById   String
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  participants  ConsultationParticipant[]
-}
-
-model ConsultationParticipant {
-  id             String          @id @default(uuid())
-  consultation   Consultation    @relation(fields: [consultationId], references: [id], onDelete: Cascade)
-  consultationId String
-  userId         String
-  role           ParticipantRole @default(PARTICIPANT)
-  joinedAt       DateTime?
-  leftAt         DateTime?
-  createdAt      DateTime        @default(now())
-  @@index([consultationId])
 }
 
 enum invite_status {

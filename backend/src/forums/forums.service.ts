@@ -148,6 +148,8 @@ export class ForumsService {
     return {
       id: topic.id,
       title: topic.title,
+      tags: (topic as any).tags ?? [],
+      createdAt: topic.created_at,
       author: this.mapAuthor(topic.users),
       category: topic.forum_categories
         ? {
@@ -165,12 +167,15 @@ export class ForumsService {
     await this.ensureUserExists(authorId);
     await this.ensureCategoryExists(categoryId);
 
+    const tags = dto.tags?.filter(Boolean) ?? [];
+
     const topic = await this.prisma.$transaction(async (tx) => {
       const createdTopic = await tx.forum_topics.create({
         data: {
           category_id: categoryId,
           author_id: authorId,
           title: dto.title.trim(),
+          tags,
         },
       });
 
@@ -378,6 +383,8 @@ export class ForumsService {
     return {
       id: topic.id,
       title: topic.title,
+      tags: topic.tags ?? [],
+      createdAt: topic.created_at,
       author: this.mapAuthor(topic.users),
       category: topic.forum_categories
         ? {
@@ -394,6 +401,7 @@ export class ForumsService {
       id: post.id,
       topicId: post.topic_id,
       content: post.content,
+      createdAt: post.created_at,
       author: this.mapAuthor(post.users),
     };
   }
@@ -455,7 +463,7 @@ export class ForumsService {
   private assertCanModify(authorId: number | null, currentUser: ForumUser) {
     const currentUserId = this.parseId(currentUser.id, 'userId');
 
-    if (authorId === currentUserId || currentUser.roles?.includes('Admin')) {
+    if (authorId === currentUserId || currentUser.roles?.includes('ADMIN')) {
       return;
     }
 

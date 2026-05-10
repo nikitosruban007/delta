@@ -8,8 +8,10 @@ import { ScoreStatus } from '../../domain/enums/score-status.enum';
 export interface SubmitWorkInput {
   stageId: string;
   teamId: string;
-  title: string;
   contentUrl?: string | null;
+  videoUrl?: string | null;
+  liveDemoUrl?: string | null;
+  description?: string | null;
 }
 
 @Injectable()
@@ -23,8 +25,10 @@ export class SubmitWorkUseCase {
     const submission = await this.repo.createSubmission({
       stageId: input.stageId,
       teamId: input.teamId,
-      title: input.title,
       contentUrl: input.contentUrl ?? null,
+      videoUrl: input.videoUrl ?? null,
+      liveDemoUrl: input.liveDemoUrl ?? null,
+      description: input.description ?? null,
       status: ScoreStatus.SUBMITTED,
     });
 

@@ -6,10 +6,6 @@ export class ScoreSubmissionDto {
   @IsString()
   submissionId!: string;
 
-  @ApiProperty()
-  @IsString()
-  judgeId!: string;
-
   @ApiProperty({ minimum: 0, maximum: 100 })
   @IsNumber()
   @Min(0)

@@ -8,10 +8,6 @@ export class RegisterTeamDto {
 
   @ApiProperty()
   @IsString()
-  captainId!: string;
-
-  @ApiProperty()
-  @IsString()
   @Length(2, 120)
   name!: string;
 }
