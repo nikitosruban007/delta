@@ -1,8 +1,18 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Plus, Send, Trash2, UserRound, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Loader2,
+  Search,
+  Send,
+  Trash2,
+  UserPlus,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
@@ -10,39 +20,90 @@ import BrandMark from "@/components/shared/BrandMark";
 import { AccentDot, DotGrid } from "@/components/shared/Decor";
 import Footer from "@/components/shared/Footer";
 import { useAuth } from "@/contexts/auth-context";
-import { teamsApi, tournamentsApi, ApiError } from "@/lib/api";
+import {
+  ApiError,
+  teamsApi,
+  tournamentsApi,
+  usersApi,
+  type UserSearchResult,
+} from "@/lib/api";
 
-type Participant = { fullName: string; email: string };
-const emptyParticipant = (): Participant => ({ fullName: "", email: "" });
+type Member = {
+  userId: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+  username: string | null;
+};
 
 const inputClass =
-  "h-10 rounded-[4px] border border-[#d0d0d2] bg-[#d7d7d9] px-4 text-sm text-[#111111] outline-none transition placeholder:text-[#343434] focus:border-[#5f72df] focus:ring-4 focus:ring-[#5f72df]/15";
+  "h-10 rounded-[6px] border border-[#d0d0d2] bg-white px-4 text-sm text-[#111111] outline-none transition placeholder:text-[#888] focus:border-[#5f72df] focus:ring-4 focus:ring-[#5f72df]/15";
 
 export default function TournamentJoinPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const tournamentId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const [teamName, setTeamName] = useState("");
-  const [participants, setParticipants] = useState<Participant[]>([emptyParticipant()]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const { data: tournament, isLoading } = useQuery({
     queryKey: ["tournament", tournamentId],
     queryFn: () => tournamentsApi.getById(tournamentId),
   });
 
-  const handleParticipantChange = (index: number, field: keyof Participant, value: string) => {
-    setParticipants((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
-    );
+  const { data: searchResults, isFetching: searching } = useQuery({
+    queryKey: ["users-search", debouncedQuery],
+    queryFn: () => usersApi.search(debouncedQuery, token!),
+    enabled: Boolean(token) && debouncedQuery.length >= 2,
+    staleTime: 30_000,
+  });
+
+  const minMembers = tournament?.teamSizeMin ?? 2;
+  const maxMembers = tournament?.teamSizeMax ?? 5;
+  // members[] excludes captain; captain counted separately.
+  const totalSize = members.length + 1;
+
+  const addMember = (candidate: UserSearchResult) => {
+    setSearchQuery("");
+    setDebouncedQuery("");
+    if (user && candidate.email.toLowerCase() === user.email?.toLowerCase()) {
+      setServerError("Капітан уже додається автоматично");
+      return;
+    }
+    if (members.some((m) => m.email.toLowerCase() === candidate.email.toLowerCase())) {
+      setServerError("Цей учасник уже доданий");
+      return;
+    }
+    if (totalSize >= maxMembers) {
+      setServerError(`Максимум ${maxMembers} учасників у команді`);
+      return;
+    }
+    setServerError(null);
+    setMembers((prev) => [
+      ...prev,
+      {
+        userId: candidate.id,
+        email: candidate.email,
+        fullName: candidate.name,
+        avatarUrl: candidate.avatarUrl,
+        username: candidate.username,
+      },
+    ]);
   };
 
-  const addParticipant = () => setParticipants((prev) => [...prev, emptyParticipant()]);
-  const removeParticipant = (index: number) =>
-    setParticipants((prev) => prev.filter((_, i) => i !== index));
+  const removeMember = (index: number) =>
+    setMembers((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,15 +113,25 @@ export default function TournamentJoinPage() {
       router.push("/login");
       return;
     }
-
     if (!teamName.trim()) {
       setServerError("Введіть назву команди");
+      return;
+    }
+    if (totalSize < minMembers) {
+      setServerError(`Потрібно щонайменше ${minMembers} учасники (включно з капітаном)`);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await teamsApi.register({ tournamentId, name: teamName.trim() }, token);
+      await teamsApi.register(
+        {
+          tournamentId,
+          name: teamName.trim(),
+          members: members.map((m) => ({ fullName: m.fullName, email: m.email })),
+        },
+        token,
+      );
       router.push(`/tournaments/${tournamentId}`);
     } catch (error) {
       if (error instanceof ApiError) {
@@ -84,6 +155,12 @@ export default function TournamentJoinPage() {
       </div>
     );
   }
+
+  const filteredResults = (searchResults ?? []).filter(
+    (r) =>
+      r.id !== user?.id &&
+      !members.some((m) => m.email.toLowerCase() === r.email.toLowerCase()),
+  );
 
   return (
     <main className="flex min-h-screen flex-col bg-[#f5f5f6] text-[#111111]">
@@ -109,13 +186,16 @@ export default function TournamentJoinPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="relative z-10 overflow-hidden rounded-[8px] border border-[#7d7d7f] bg-white shadow-[0_18px_60px_rgba(17,17,17,0.08)]"
+          className="relative z-10 overflow-hidden rounded-[10px] border border-[#d6d6d9] bg-white shadow-[0_18px_60px_rgba(17,17,17,0.08)]"
         >
           <div className="border-b border-[#d1d1d3] bg-[#f7f7f8] px-5 py-6 md:px-10">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5f72df]">
               {tournament?.title ?? "Турнір"}
             </p>
             <h1 className="mt-2 text-3xl font-semibold">Реєстрація команди</h1>
+            <p className="mt-2 text-sm text-[#5b5f69]">
+              Розмір команди: від {minMembers} до {maxMembers} (включно з капітаном).
+            </p>
           </div>
 
           <div className="space-y-8 px-5 py-8 md:px-10">
@@ -130,78 +210,177 @@ export default function TournamentJoinPage() {
               </p>
             )}
 
-            <label className="block max-w-[360px]">
+            <label className="block max-w-[420px]">
               <span className="mb-2 block text-sm font-semibold text-[#414143]">Назва команди</span>
               <input
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
                 placeholder="Назва команди"
-                className="h-12 w-full rounded-[6px] border border-[#d0d0d2] bg-[#d7d7d9] px-5 text-base outline-none transition placeholder:text-[#2e2e2e] focus:border-[#5f72df] focus:ring-4 focus:ring-[#5f72df]/15"
+                className="h-12 w-full rounded-[6px] border border-[#d0d0d2] bg-white px-5 text-base outline-none transition placeholder:text-[#888] focus:border-[#5f72df] focus:ring-4 focus:ring-[#5f72df]/15"
                 required
               />
             </label>
 
-            <div className="space-y-5">
-              {participants.map((participant, index) => (
-                <section
-                  key={index}
-                  className="overflow-hidden rounded-[8px] border border-[#d0d0d2] bg-[#fbfbfc]"
-                >
-                  <div className="flex items-center justify-between bg-[#777779] px-4 py-2.5 text-sm font-medium text-white">
-                    <span className="inline-flex items-center gap-2">
-                      <UsersRound className="size-4" />
-                      {index === 0 ? "Учасник_1" : `Учасник_${index + 1}`}
-                    </span>
+            {/* Captain */}
+            <section className="rounded-[10px] border border-[#d0d0d2] bg-[#fbfbfc]">
+              <div className="flex items-center justify-between bg-[#0b3372] px-4 py-2.5 text-sm font-medium text-white">
+                <span className="inline-flex items-center gap-2">
+                  <UsersRound className="size-4" />
+                  Капітан
+                </span>
+                <span className="text-xs opacity-80">Це ви</span>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-4 md:px-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4edfa] text-sm font-bold text-[#1B345B]">
+                  {user?.name?.[0]?.toUpperCase() ?? "?"}
+                </div>
+                <div className="text-sm">
+                  <p className="font-semibold">{user?.name}</p>
+                  <p className="text-[#888]">{user?.email}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Added members */}
+            {members.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-[#5b5f69]">
+                  Учасники команди ({members.length})
+                </h2>
+                {members.map((m, index) => (
+                  <section
+                    key={m.userId}
+                    className="flex items-center justify-between rounded-[10px] border border-[#d0d0d2] bg-white px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      {m.avatarUrl ? (
+                        <img src={m.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#5f72df]">
+                          {m.fullName[0]?.toUpperCase() ?? "?"}
+                        </div>
+                      )}
+                      <div className="text-sm">
+                        <p className="font-semibold">
+                          {m.fullName}
+                          {m.username ? (
+                            <span className="ml-2 text-xs text-[#888]">@{m.username}</span>
+                          ) : null}
+                        </p>
+                        <p className="text-[#888]">{m.email}</p>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => removeParticipant(index)}
-                      disabled={participants.length === 1}
-                      className="inline-flex items-center gap-1 transition hover:text-[#d8e8ff] disabled:opacity-60"
+                      onClick={() => removeMember(index)}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-[#a0263c] transition hover:bg-red-50"
                     >
                       <Trash2 className="size-3.5" />
-                      Видалити
+                      Прибрати
                     </button>
+                  </section>
+                ))}
+              </div>
+            )}
+
+            {/* Search */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-[#5b5f69]">
+                Додати учасника
+              </h2>
+              <div className="relative">
+                <div className="flex items-center gap-2 rounded-[8px] border border-[#d0d0d2] bg-white px-4 py-2.5">
+                  <Search className="size-4 text-[#888]" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Пошук за email, @username або імʼям…"
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#888]"
+                  />
+                  {searching && <Loader2 className="size-4 animate-spin text-[#5f72df]" />}
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="text-[#888] transition hover:text-[#111]"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
+                </div>
+                {debouncedQuery.length >= 2 && (
+                  <div className="mt-2 overflow-hidden rounded-[8px] border border-[#d0d0d2] bg-white shadow-sm">
+                    {filteredResults.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-[#888]">
+                        {searching ? "Пошук…" : "Нічого не знайдено"}
+                      </p>
+                    ) : (
+                      filteredResults.map((r) => (
+                        <button
+                          type="button"
+                          key={r.id}
+                          onClick={() => addMember(r)}
+                          className="flex w-full items-center justify-between gap-3 border-b border-[#eee] px-4 py-3 text-left transition last:border-b-0 hover:bg-[#f5f7ff]"
+                        >
+                          <div className="flex items-center gap-3">
+                            {r.avatarUrl ? (
+                              <img src={r.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+                            ) : (
+                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#5f72df]">
+                                {r.name[0]?.toUpperCase() ?? "?"}
+                              </div>
+                            )}
+                            <div className="text-sm">
+                              <p className="font-semibold">
+                                {r.name}
+                                {r.username ? (
+                                  <span className="ml-2 text-xs text-[#888]">@{r.username}</span>
+                                ) : null}
+                              </p>
+                              <p className="text-[#888]">{r.email}</p>
+                            </div>
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#5f72df] px-3 py-1 text-xs font-semibold text-white">
+                            <UserPlus className="size-3" />
+                            Додати
+                          </span>
+                        </button>
+                      ))
+                    )}
                   </div>
-                  <div className="grid max-w-[640px] gap-3 px-4 py-4 md:px-6">
-                    <input
-                      value={participant.fullName}
-                      onChange={(e) => handleParticipantChange(index, "fullName", e.target.value)}
-                      placeholder="Прізвище Ім'я"
-                      className={inputClass}
-                    />
-                    <input
-                      type="email"
-                      value={participant.email}
-                      onChange={(e) => handleParticipantChange(index, "email", e.target.value)}
-                      placeholder="Електронна адреса"
-                      className={inputClass}
-                    />
-                  </div>
-                </section>
-              ))}
+                )}
+                {debouncedQuery.length > 0 && debouncedQuery.length < 2 && (
+                  <p className="mt-2 text-xs text-[#888]">Введіть щонайменше 2 символи</p>
+                )}
+              </div>
+            </section>
+
+            <div className="flex items-center gap-2 text-xs text-[#5b5f69]">
+              {totalSize >= minMembers ? (
+                <span className="inline-flex items-center gap-1 text-green-700">
+                  <Check className="size-4" />
+                  Розмір команди: {totalSize}/{maxMembers}
+                </span>
+              ) : (
+                <span>
+                  Зараз {totalSize}/{maxMembers}. Додайте ще {minMembers - totalSize} учасника(ів).
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-5 border-t border-[#8e8e8e] bg-[#eeeeef] px-6 py-7 sm:flex-row sm:gap-10">
-            <button
-              type="button"
-              onClick={addParticipant}
-              className="inline-flex items-center gap-2 rounded-[8px] border border-[#5f72df] bg-white px-6 py-2.5 text-xl font-medium leading-none text-[#0a1f55] transition hover:bg-[#f0f4ff] md:text-[24px]"
-            >
-              <Plus className="size-5" />
-              Додати учасника +
-            </button>
+          <div className="flex flex-col items-center justify-center gap-5 border-t border-[#dadadc] bg-[#eeeeef] px-6 py-7 sm:flex-row sm:justify-end">
             <button
               type="submit"
-              disabled={isSubmitting || !isAuthenticated}
-              className="inline-flex items-center gap-2 rounded-[8px] bg-[#5f72df] px-7 py-2.5 text-xl font-medium leading-none text-[#0a1f55] shadow-[0_12px_24px_rgba(95,114,223,0.24)] transition hover:bg-[#5366d5] disabled:opacity-60 md:text-[24px]"
+              disabled={isSubmitting || !isAuthenticated || totalSize < minMembers}
+              className="inline-flex items-center gap-2 rounded-[8px] bg-[#5f72df] px-7 py-3 text-base font-semibold text-white shadow-[0_12px_24px_rgba(95,114,223,0.24)] transition hover:bg-[#5366d5] disabled:opacity-60"
             >
               {isSubmitting ? (
                 <Loader2 className="size-5 animate-spin" />
               ) : (
                 <Send className="size-5" />
               )}
-              {isSubmitting ? "Реєструємо..." : "Зареєструвати команду"}
+              {isSubmitting ? "Реєструємо…" : "Зареєструвати команду"}
             </button>
           </div>
         </form>

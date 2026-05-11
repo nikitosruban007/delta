@@ -27,6 +27,7 @@ const mockRepo = {
 
 const mockRegisterTournament = { execute: jest.fn() };
 const mockPublishTournament = { execute: jest.fn() };
+const mockFinishEvaluation = { execute: jest.fn() };
 
 describe('TournamentsController - access control', () => {
   let controller: TournamentsController;
@@ -35,6 +36,7 @@ describe('TournamentsController - access control', () => {
     controller = new TournamentsController(
       mockRegisterTournament as any,
       mockPublishTournament as any,
+      mockFinishEvaluation as any,
       mockRepo as any,
     );
     jest.clearAllMocks();

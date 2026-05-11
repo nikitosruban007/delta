@@ -12,5 +12,9 @@ export class Tournament {
     public endsAt: Date | null,
     public createdAt: Date,
     public updatedAt: Date,
+    public maxTeams: number | null = null,
+    public teamSizeMin: number | null = null,
+    public teamSizeMax: number | null = null,
+    public rules: string | null = null,
   ) {}
 }

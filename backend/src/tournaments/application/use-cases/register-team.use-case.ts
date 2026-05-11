@@ -1,32 +1,153 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { TOURNAMENT_REPOSITORY } from '../ports/tournament.repository.port';
-import type { TournamentRepositoryPort } from '../ports/tournament.repository.port';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { NOTIFICATION_PORT } from '../ports/notification.port';
 import type { NotificationPort } from '../ports/notification.port';
-import { TeamStatus } from '../../domain/enums/team-status.enum';
+
+export interface RegisterTeamMember {
+  fullName: string;
+  email: string;
+}
 
 export interface RegisterTeamInput {
   tournamentId: string;
   captainId: string;
+  captainEmail: string;
   name: string;
+  members: RegisterTeamMember[];
 }
 
 @Injectable()
 export class RegisterTeamUseCase {
   constructor(
-    @Inject(TOURNAMENT_REPOSITORY) private readonly repo: TournamentRepositoryPort,
+    private readonly prisma: PrismaService,
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
   ) {}
 
   async execute(input: RegisterTeamInput) {
-    const team = await this.repo.createTeam({
-      tournamentId: input.tournamentId,
-      captainId: input.captainId,
-      name: input.name,
-      status: TeamStatus.REGISTERED,
+    const tournamentId = Number(input.tournamentId);
+    const captainId = Number(input.captainId);
+
+    const tournament = await this.prisma.tournaments.findUnique({
+      where: { id: tournamentId },
+      include: { _count: { select: { tournament_teams: true } } },
+    });
+    if (!tournament) throw new NotFoundException('Tournament not found');
+
+    if (tournament.status !== 'registration') {
+      throw new BadRequestException(
+        `Registration is closed (tournament status: ${tournament.status})`,
+      );
+    }
+
+    if (
+      tournament.registration_deadline &&
+      tournament.registration_deadline.getTime() < Date.now()
+    ) {
+      throw new BadRequestException('Registration deadline has passed');
+    }
+
+    const maxTeams = tournament.max_teams ?? 50;
+    if (tournament._count.tournament_teams >= maxTeams) {
+      throw new BadRequestException('Tournament is full');
+    }
+
+    // Captain + members
+    const captainMember: RegisterTeamMember = {
+      fullName: '',
+      email: (input.captainEmail ?? '').trim().toLowerCase(),
+    };
+
+    const extras = (input.members ?? []).map((m) => ({
+      fullName: m.fullName.trim(),
+      email: m.email.trim().toLowerCase(),
+    }));
+
+    const allMembers = [captainMember, ...extras];
+    const emails = allMembers.map((m) => m.email).filter(Boolean);
+    const uniqueEmails = new Set(emails);
+    if (uniqueEmails.size !== emails.length) {
+      throw new BadRequestException('Member emails must be unique');
+    }
+
+    const totalSize = allMembers.length;
+    const minSize = tournament.team_size_min ?? 1;
+    const maxSize = tournament.team_size_max ?? 20;
+    if (totalSize < minSize) {
+      throw new BadRequestException(`Team requires at least ${minSize} members (including captain)`);
+    }
+    if (totalSize > maxSize) {
+      throw new BadRequestException(`Team exceeds maximum size of ${maxSize}`);
+    }
+
+    // Captain must not already lead another team in this tournament
+    const existing = await this.prisma.tournament_teams.findFirst({
+      where: {
+        tournament_id: tournamentId,
+        teams: { captain_id: captainId },
+      },
+    });
+    if (existing) {
+      throw new ConflictException('Captain already has a team registered in this tournament');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const team = await tx.teams.create({
+        data: { name: input.name, captain_id: captainId },
+      });
+
+      await tx.tournament_teams.create({
+        data: { tournament_id: tournamentId, team_id: team.id },
+      });
+
+      await tx.team_members.create({
+        data: { team_id: team.id, user_id: captainId, role: 'captain' },
+      });
+
+      // For each additional member, link existing user as member if account exists,
+      // otherwise create a pending invite.
+      for (const m of extras) {
+        if (!m.email) continue;
+        const user = await tx.users.findUnique({ where: { email: m.email } });
+        if (user) {
+          await tx.team_members.upsert({
+            where: { team_id_user_id: { team_id: team.id, user_id: user.id } },
+            create: { team_id: team.id, user_id: user.id, role: 'member' },
+            update: {},
+          });
+        } else {
+          await tx.team_invites.create({
+            data: {
+              team_id: team.id,
+              email: m.email,
+              token: randomUUID(),
+              status: 'pending',
+            },
+          });
+        }
+      }
+
+      return team;
     });
 
-    await this.notifier.emitToTournament(input.tournamentId, 'team.registered', team);
-    return team;
+    await this.notifier.emitToTournament(
+      input.tournamentId,
+      'team.registered',
+      { id: String(result.id), name: result.name, tournamentId: input.tournamentId },
+    );
+
+    return {
+      id: String(result.id),
+      tournamentId: input.tournamentId,
+      captainId: input.captainId,
+      name: result.name,
+      members: allMembers.map((m) => ({ fullName: m.fullName, email: m.email })),
+    };
   }
 }

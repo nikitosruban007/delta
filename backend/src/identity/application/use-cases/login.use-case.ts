@@ -19,6 +19,7 @@ export class LoginUseCase {
   async execute(input: LoginInput): Promise<AuthResult> {
     const user = await this.users.findByEmail(input.email);
     if (!user || !user.isActive) throw new InvalidCredentialsError();
+    if (!user.passwordHash) throw new InvalidCredentialsError();
 
     const valid = await this.hasher.compare(input.password, user.passwordHash);
     if (!valid) throw new InvalidCredentialsError();

@@ -70,6 +70,31 @@ export class LeaderboardService {
 
   async invalidate(tournamentId: number): Promise<void> {
     await this.cache.del(this.getCacheKey(tournamentId));
+    await this.cache.del(`tournament:${tournamentId}:leaderboard:teams`);
+  }
+
+  async getTeamLeaderboard(tournamentIdParam: string) {
+    const tournamentId = this.parseId(tournamentIdParam, 'tournamentId');
+    const cacheKey = `tournament:${tournamentId}:leaderboard:teams`;
+    await this.ensureTournamentExists(tournamentId);
+
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return { items: cached, cache: { key: cacheKey, hit: true } };
+
+    const rows = await this.prisma.leaderboard_entries.findMany({
+      where: { tournament_id: tournamentId },
+      orderBy: [{ rank: 'asc' }, { id: 'asc' }],
+      include: { teams: { select: { id: true, name: true } } },
+    });
+    const items = rows.map((r) => ({
+      rank: r.rank ?? 0,
+      teamId: r.team_id ? String(r.team_id) : null,
+      teamName: r.teams?.name ?? '',
+      totalScore: r.total_score ?? 0,
+    }));
+
+    await this.cache.set(cacheKey, items, this.cacheTtlSeconds);
+    return { items, cache: { key: cacheKey, hit: false } };
   }
 
   private async loadRankedRows(tournamentId: number): Promise<LeaderboardRow[]> {

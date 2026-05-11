@@ -79,13 +79,65 @@ export type Tournament = {
   id: string;
   title: string;
   description: string | null;
+  rules?: string | null;
   status: TournamentStatus;
   organizerId: string;
   registrationDeadline: string | null;
   startsAt: string | null;
   endsAt: string | null;
+  maxTeams?: number | null;
+  teamSizeMin?: number | null;
+  teamSizeMax?: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type Announcement = {
+  id: string;
+  tournamentId: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: { id: string; name: string; avatarUrl: string | null } | null;
+};
+
+export type TeamLeaderboardItem = {
+  rank: number;
+  teamId: string | null;
+  teamName: string;
+  totalScore: number;
+};
+
+export type TeamLeaderboardResponse = {
+  items: TeamLeaderboardItem[];
+  cache: { key: string; hit: boolean };
+};
+
+export type FinishEvaluationResult = {
+  tournamentId: string;
+  status: 'finished';
+  rankings: { rank: number; teamId: string; totalScore: number }[];
+};
+
+export type JudgeAssignmentResult = {
+  id: string;
+  tournamentId: string;
+  judgeId: string;
+  stageId: string | null;
+  createdAt: string;
+};
+
+export type UpdateTournamentInput = {
+  title?: string;
+  description?: string;
+  rules?: string;
+  registrationDeadline?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  maxTeams?: number;
+  teamSizeMin?: number;
+  teamSizeMax?: number;
+  status?: TournamentStatus;
 };
 
 export type Stage = {
@@ -159,11 +211,56 @@ export type UserProfile = {
   name: string;
   email: string;
   avatarUrl: string | null;
+  username?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  skills?: string | null;
+  company?: string | null;
+  socialLinks?: Record<string, string> | null;
+};
+
+export type UserSearchResult = {
+  id: string;
+  email: string;
+  username: string | null;
+  name: string;
+  avatarUrl: string | null;
+};
+
+export type TeamSubmissionResponse = {
+  submission: {
+    id: string;
+    teamId: string;
+    roundId: string;
+    githubUrl: string | null;
+    videoUrl: string | null;
+    liveDemoUrl: string | null;
+    description: string | null;
+    status: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  } | null;
+  deadlineAt: string | null;
+  locked: boolean;
+};
+
+export type Criterion = {
+  id: string;
+  tournamentId: string | null;
+  roundId: string | null;
+  parentId: string | null;
+  title: string;
+  description: string | null;
+  maxScore: number;
+  weight: number;
 };
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────────
 
 export const authApi = {
+  socialAuthUrl: (provider: 'google' | 'github') =>
+    `${API_BASE}/auth/${provider}`,
+
   register: (data: { email: string; password: string; name: string }) =>
     request<AuthResponse>('/auth/register', {
       method: 'POST',
@@ -179,7 +276,19 @@ export const authApi = {
   me: (token: string) =>
     request<AuthUser>('/auth/me', { token }),
 
-  updateProfile: (data: { name?: string; avatarUrl?: string }, token: string) =>
+  updateProfile: (
+    data: {
+      name?: string;
+      avatarUrl?: string;
+      username?: string;
+      bio?: string;
+      age?: number;
+      skills?: string;
+      company?: string;
+      socialLinks?: Record<string, string>;
+    },
+    token: string,
+  ) =>
     request<UserProfile>('/auth/profile', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -188,6 +297,13 @@ export const authApi = {
 
   getProfile: (token: string) =>
     request<UserProfile>('/auth/profile', { token }),
+};
+
+export const usersApi = {
+  search: (q: string, token: string, limit = 10) => {
+    const params = new URLSearchParams({ q, limit: String(limit) });
+    return request<UserSearchResult[]>(`/users/search?${params.toString()}`, { token });
+  },
 };
 
 // ─── Tournaments endpoints ────────────────────────────────────────────────────
@@ -241,15 +357,23 @@ export const tournamentsApi = {
     const qs = q.toString() ? `?${q.toString()}` : '';
     return request<LeaderboardResponse>(`/tournaments/${id}/leaderboard${qs}`, { token });
   },
+
+  getTeamLeaderboard: (id: string | number, token?: string | null) =>
+    request<TeamLeaderboardResponse>(`/tournaments/${id}/leaderboard/teams`, { token }),
 };
 
 // ─── Teams endpoints ──────────────────────────────────────────────────────────
 
+export type TeamMemberInput = { fullName: string; email: string };
+
 export const teamsApi = {
-  register: (data: { tournamentId: string; name: string }, token: string) =>
+  register: (
+    data: { tournamentId: string; name: string; members?: TeamMemberInput[] },
+    token: string,
+  ) =>
     request<Team>('/teams/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, members: data.members ?? [] }),
       token,
     }),
 };
@@ -261,7 +385,7 @@ export const submissionsApi = {
     data: {
       roundId: string;
       teamId: string;
-      githubUrl?: string;
+      githubUrl: string;
       videoUrl?: string;
       liveDemoUrl?: string;
       description?: string;
@@ -276,18 +400,116 @@ export const submissionsApi = {
 
   getById: (id: string | number, token: string) =>
     request<Submission>(`/submissions/${id}`, { token }),
+
+  getForTeam: (teamId: string, roundId: string, token: string) => {
+    const q = new URLSearchParams({ teamId, roundId });
+    return request<TeamSubmissionResponse>(`/submissions/team?${q.toString()}`, { token });
+  },
+};
+
+export const criteriaApi = {
+  list: (tournamentId: string, token?: string | null) =>
+    request<Criterion[]>(`/tournaments/${tournamentId}/criteria`, { token }),
+  create: (
+    tournamentId: string,
+    data: {
+      title: string;
+      description?: string;
+      maxScore?: number;
+      weight?: number;
+      roundId?: number;
+      parentId?: number;
+    },
+    token: string,
+  ) =>
+    request<Criterion>(`/tournaments/${tournamentId}/criteria`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      token,
+    }),
+  update: (
+    tournamentId: string,
+    criterionId: string,
+    data: Partial<{
+      title: string;
+      description: string;
+      maxScore: number;
+      weight: number;
+      roundId: number | null;
+    }>,
+    token: string,
+  ) =>
+    request<Criterion>(`/tournaments/${tournamentId}/criteria/${criterionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      token,
+    }),
+  remove: (tournamentId: string, criterionId: string, token: string) =>
+    request<{ ok: boolean }>(`/tournaments/${tournamentId}/criteria/${criterionId}`, {
+      method: 'DELETE',
+      token,
+    }),
 };
 
 // ─── Evaluations endpoints ────────────────────────────────────────────────────
 
+export type CriterionScore = { criterionId: number; score: number };
+
 export const evaluationsApi = {
   score: (
-    data: { submissionId: string; score: number; comment?: string },
+    data: {
+      submissionId: string;
+      score?: number;
+      criteria?: CriterionScore[];
+      comment?: string;
+    },
     token: string,
   ) =>
     request<Evaluation>('/judges/score', {
       method: 'POST',
       body: JSON.stringify(data),
+      token,
+    }),
+};
+
+export const judgesApi = {
+  listAssignedSubmissions: (token: string) =>
+    request<SubmissionForJudge[]>('/judges/submissions', { token }),
+  assign: (
+    data: { tournamentId: string; judgeId: string; stageId?: string | null },
+    token: string,
+  ) =>
+    request<JudgeAssignmentResult>('/judges/assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      token,
+    }),
+};
+
+export const announcementsApi = {
+  list: (tournamentId: string, token?: string | null) =>
+    request<Announcement[]>(`/announcements/tournament/${tournamentId}`, { token }),
+  create: (
+    data: { tournamentId: string; title: string; body: string },
+    token: string,
+  ) =>
+    request<Announcement>('/announcements', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      token,
+    }),
+};
+
+export const tournamentManagementApi = {
+  update: (id: string, data: UpdateTournamentInput, token: string) =>
+    request<Tournament>(`/tournaments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      token,
+    }),
+  finish: (id: string, token: string) =>
+    request<FinishEvaluationResult>(`/tournaments/${id}/finish`, {
+      method: 'POST',
       token,
     }),
 };

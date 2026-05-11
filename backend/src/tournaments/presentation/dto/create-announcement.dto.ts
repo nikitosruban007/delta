@@ -8,10 +8,6 @@ export class CreateAnnouncementDto {
 
   @ApiProperty()
   @IsString()
-  authorId!: string;
-
-  @ApiProperty()
-  @IsString()
   @Length(3, 200)
   title!: string;
 

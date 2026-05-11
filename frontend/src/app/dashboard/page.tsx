@@ -208,7 +208,7 @@ export default function DashboardPage() {
             <Link href="/forum" className="flex items-center gap-3 transition hover:text-[#111]">
               <GraduationCap size={18} /> {t("forum.title")}
             </Link>
-            <Link href="#" className="flex items-center justify-between transition hover:text-[#111]">
+            <Link href="/archive" className="flex items-center justify-between transition hover:text-[#111]">
               <div className="flex items-center gap-3">
                 <Archive size={18} /> {t("dashboard.sidebar.archive")}
               </div>

@@ -20,7 +20,7 @@ export class StagesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create stage (Admin/Organizer only)' })
+  @ApiOperation({ summary: 'Create stage (tournament owner or admin only)' })
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateStageDto) {
     if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
       throw new ForbiddenException('Only admins and organizers can create stages');
@@ -31,12 +31,14 @@ export class StagesController {
       description: dto.description ?? null,
       orderIndex: dto.orderIndex,
       deadlineAt: dto.deadlineAt ? new Date(dto.deadlineAt) : null,
+      organizerId: user.id,
+      organizerIsAdmin: user.roles.includes('ADMIN'),
     });
   }
 
   @Put('deadline')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update stage deadline (Admin/Organizer only)' })
+  @ApiOperation({ summary: 'Update stage/tournament deadline (owner or admin only)' })
   update(@CurrentUser() user: AuthUser, @Body() dto: UpdateDeadlineDto) {
     if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
       throw new ForbiddenException('Only admins and organizers can update deadlines');
@@ -45,6 +47,8 @@ export class StagesController {
       entityType: dto.entityType,
       entityId: dto.entityId,
       deadlineAt: dto.deadlineAt ? new Date(dto.deadlineAt) : null,
+      organizerId: user.id,
+      organizerIsAdmin: user.roles.includes('ADMIN'),
     });
   }
 }

@@ -15,10 +15,12 @@ export class PublishTournamentUseCase {
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
   ) {}
 
-  async execute(tournamentId: string, organizerId: string) {
+  async execute(tournamentId: string, organizerId: string, organizerIsAdmin = false) {
     const tournament = await this.repo.findTournamentById(tournamentId);
     if (!tournament) throw new NotFoundException('Tournament not found');
-    if (tournament.organizerId !== organizerId) throw new BadRequestException('Forbidden');
+    if (!organizerIsAdmin && tournament.organizerId !== organizerId) {
+      throw new BadRequestException('Forbidden');
+    }
     if (tournament.status !== TournamentStatus.DRAFT) throw new BadRequestException('Only draft tournaments can be published');
 
     const updated = await this.repo.updateTournament(tournamentId, {

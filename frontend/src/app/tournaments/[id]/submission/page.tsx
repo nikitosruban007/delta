@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Edit3, Eye, Loader2, Send, Video } from "lucide-react";
+import { ArrowLeft, Edit3, Eye, Loader2, Lock, Send, Video } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -12,10 +12,18 @@ import Footer from "@/components/shared/Footer";
 import { useAuth } from "@/contexts/auth-context";
 import { tournamentsApi, submissionsApi, ApiError } from "@/lib/api";
 
+function formatDeadline(deadline: string | null): string {
+  if (!deadline) return "—";
+  const d = new Date(deadline);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("uk-UA");
+}
+
 export default function TournamentSubmissionPage() {
   const params = useParams<{ id: string }>();
   const tournamentId = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { token, isAuthenticated, user } = useAuth();
 
   const [activeRound, setActiveRound] = useState(0);
@@ -24,7 +32,6 @@ export default function TournamentSubmissionPage() {
   const [githubUrl, setGithubUrl] = useState("");
   const [liveDemoUrl, setLiveDemoUrl] = useState("");
   const [mode, setMode] = useState<"edit" | "view">("edit");
-  const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const { data: tournament, isLoading: tournamentLoading } = useQuery({
@@ -45,22 +52,45 @@ export default function TournamentSubmissionPage() {
   });
 
   const myTeam = teams?.find((t) => t.captainId === user?.id);
+  const activeRoundData = rounds?.[activeRound];
+
+  const { data: teamSubmission, refetch: refetchSubmission } = useQuery({
+    queryKey: ["team-submission", myTeam?.id, activeRoundData?.id],
+    queryFn: () =>
+      submissionsApi.getForTeam(myTeam!.id, activeRoundData!.id, token!),
+    enabled: Boolean(token && myTeam && activeRoundData),
+  });
+
+  // Preload form when submission loads / round changes
+  useEffect(() => {
+    if (teamSubmission?.submission) {
+      setDescription(teamSubmission.submission.description ?? "");
+      setGithubUrl(teamSubmission.submission.githubUrl ?? "");
+      setVideoUrl(teamSubmission.submission.videoUrl ?? "");
+      setLiveDemoUrl(teamSubmission.submission.liveDemoUrl ?? "");
+      setMode("view");
+    } else {
+      setDescription("");
+      setGithubUrl("");
+      setVideoUrl("");
+      setLiveDemoUrl("");
+      setMode("edit");
+    }
+    setServerError(null);
+  }, [teamSubmission?.submission?.id, activeRoundData?.id]);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!token) throw new Error("Not authenticated");
-      if (!rounds || rounds.length === 0) throw new Error("No rounds found");
-
-      const round = rounds[activeRound];
-      if (!round) throw new Error("Round not found");
-
+      if (!activeRoundData) throw new Error("Round not found");
       if (!myTeam) throw new Error("You are not registered in a team for this tournament");
+      if (!githubUrl.trim()) throw new Error("Вкажіть GitHub URL для подачі");
 
       return submissionsApi.create(
         {
-          roundId: round.id,
+          roundId: activeRoundData.id,
           teamId: myTeam.id,
-          githubUrl: githubUrl || undefined,
+          githubUrl: githubUrl.trim(),
           videoUrl: videoUrl || undefined,
           liveDemoUrl: liveDemoUrl || undefined,
           description: description || undefined,
@@ -69,17 +99,14 @@ export default function TournamentSubmissionPage() {
       );
     },
     onSuccess: () => {
-      setSubmitted(true);
       setMode("view");
+      queryClient.invalidateQueries({ queryKey: ["team-submission", myTeam?.id, activeRoundData?.id] });
+      refetchSubmission();
     },
     onError: (error) => {
-      if (error instanceof ApiError) {
-        setServerError(error.message);
-      } else if (error instanceof Error) {
-        setServerError(error.message);
-      } else {
-        setServerError("Сталася помилка. Спробуйте ще раз.");
-      }
+      if (error instanceof ApiError) setServerError(error.message);
+      else if (error instanceof Error) setServerError(error.message);
+      else setServerError("Сталася помилка. Спробуйте ще раз.");
     },
   });
 
@@ -91,8 +118,10 @@ export default function TournamentSubmissionPage() {
     );
   }
 
-  const activeRoundData = rounds?.[activeRound];
-  const canEdit = !submitted && isAuthenticated;
+  const locked = teamSubmission?.locked ?? false;
+  const hasSubmission = Boolean(teamSubmission?.submission);
+  const status = teamSubmission?.submission?.status ?? null;
+  const canEdit = !locked && isAuthenticated && Boolean(myTeam);
 
   return (
     <main className="flex min-h-screen flex-col bg-[#f5f5f6] text-[#111111]">
@@ -126,7 +155,7 @@ export default function TournamentSubmissionPage() {
                 {tournament?.title ?? "Турнір"}
               </h1>
               <p className="mt-2 text-sm text-[#51515a] md:text-base">
-                Тут можна подати свою заявку у кілька раундів та відстежити статус від журі.
+                Можна редагувати подачу до закриття раунду.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 rounded-[10px] bg-[#eef2ff] p-2">
@@ -176,6 +205,13 @@ export default function TournamentSubmissionPage() {
               </p>
             )}
 
+            {locked && (
+              <p className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                <Lock className="size-4" />
+                Дедлайн раунду минув ({formatDeadline(teamSubmission?.deadlineAt ?? null)}). Редагування заблоковано.
+              </p>
+            )}
+
             {rounds && rounds.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 {rounds.map((round, index) => (
@@ -206,20 +242,24 @@ export default function TournamentSubmissionPage() {
             <div className="grid gap-8 lg:grid-cols-[1.35fr_0.9fr]">
               <section className="space-y-6 rounded-[16px] border border-[#dce4f0] bg-[#fafbff] p-6 shadow-[0_10px_28px_rgba(15,40,90,0.08)]">
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">
-                    {activeRoundData?.title ?? "Раунд"}
-                  </h2>
-                  {submitted && (
-                    <span className="rounded-full bg-[#ffe8dc] px-3 py-1 text-sm font-semibold text-[#bf5000]">
-                      Статус: Очікується оцінка від журі
+                  <h2 className="text-xl font-semibold">{activeRoundData?.title ?? "Раунд"}</h2>
+                  {hasSubmission && (
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+                        status === "reviewed"
+                          ? "bg-[#dcfce7] text-[#166534]"
+                          : "bg-[#ffe8dc] text-[#bf5000]"
+                      }`}
+                    >
+                      {status === "reviewed"
+                        ? "Оцінено журі"
+                        : "Очікується оцінка журі"}
                     </span>
                   )}
                 </div>
 
                 {serverError && (
-                  <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {serverError}
-                  </p>
+                  <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{serverError}</p>
                 )}
 
                 <div className="space-y-5">
@@ -235,7 +275,7 @@ export default function TournamentSubmissionPage() {
                       />
                     ) : (
                       <div className="min-h-[160px] rounded-[10px] border border-[#d1d4dd] bg-[#f8f9fb] px-4 py-4 text-base leading-7 text-[#252a32]">
-                        {description || "Опис не введено"}
+                        {description || "—"}
                       </div>
                     )}
                   </div>
@@ -304,7 +344,11 @@ export default function TournamentSubmissionPage() {
                       ) : (
                         <Send className="size-5" />
                       )}
-                      {submitMutation.isPending ? "Подаємо..." : "Подати роботу"}
+                      {submitMutation.isPending
+                        ? "Зберігаємо..."
+                        : hasSubmission
+                          ? "Оновити подачу"
+                          : "Подати роботу"}
                     </button>
                   </div>
                 )}
@@ -316,7 +360,7 @@ export default function TournamentSubmissionPage() {
                   <div>
                     <p className="text-sm font-semibold">Нагадування</p>
                     <p className="text-sm text-[#5b5f69]">
-                      Ця сторінка для подачі підсумкового проекту.
+                      Подача редагується до закриття дедлайну.
                     </p>
                   </div>
                 </div>
@@ -326,16 +370,24 @@ export default function TournamentSubmissionPage() {
                   <ul className="mt-3 list-disc space-y-2 pl-5 text-[#4e546d]">
                     <li>Заповніть опис та посилання.</li>
                     <li>Натисніть «Подати роботу».</li>
-                    <li>Після подачі ваша робота стане доступна журі.</li>
+                    <li>До дедлайну можна повторно змінювати — буде оновлено.</li>
+                    <li>Після дедлайну редагування заблоковане.</li>
                   </ul>
                 </div>
 
                 <div className="rounded-[14px] border border-[#cfd5ea] bg-[#f8fbff] px-5 py-4 text-sm text-[#38436f]">
                   <p className="font-semibold">Стан</p>
                   <p className="mt-2">
-                    {submitted
-                      ? "Опубліковано. Очікується оцінка від журі."
-                      : "Чернетка. Робота ще не опублікована."}
+                    {locked
+                      ? "Дедлайн минув. Подача заблокована."
+                      : hasSubmission
+                        ? status === "reviewed"
+                          ? "Робота оцінена журі."
+                          : "Робота подана. Очікується оцінка журі."
+                        : "Чернетка. Робота ще не подана."}
+                  </p>
+                  <p className="mt-2 text-xs text-[#5b6280]">
+                    Дедлайн: {formatDeadline(teamSubmission?.deadlineAt ?? activeRoundData?.deadlineAt ?? null)}
                   </p>
                 </div>
               </aside>

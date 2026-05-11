@@ -1,7 +1,9 @@
 export type UserAccess = {
   id: string;
   email: string;
-  passwordHash: string;
+  passwordHash: string | null;
+  googleId: string | null;
+  githubId: string | null;
   name: string;
   avatarUrl: string | null;
   isActive: boolean;

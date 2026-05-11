@@ -12,7 +12,10 @@ import { ListRolesUseCase } from './application/use-cases/list-roles.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { RegisterUseCase } from './application/use-cases/register.use-case';
 import { RevokeRoleUseCase } from './application/use-cases/revoke-role.use-case';
+import { SocialLoginUseCase } from './application/use-cases/social-login.use-case';
 import { identityProviders } from './infrastructure/providers/identity.providers';
+import { GithubStrategy } from './infrastructure/security/github.strategy';
+import { GoogleStrategy } from './infrastructure/security/google.strategy';
 import { JwtStrategy } from './infrastructure/security/jwt.strategy';
 import { IDENTITY_TOKENS } from './infrastructure/identity.tokens';
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -20,6 +23,8 @@ import { ProfileController } from './presentation/controllers/profile.controller
 import { PermissionsController } from './presentation/controllers/permissions.controller';
 import { RolesController } from './presentation/controllers/roles.controller';
 import { UsersController } from './presentation/controllers/users.controller';
+import { GithubAuthGuard } from './presentation/guards/github-auth.guard';
+import { GoogleAuthGuard } from './presentation/guards/google-auth.guard';
 import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard';
 import { PermissionsGuard } from './presentation/guards/permissions.guard';
 import { RolesGuard } from './presentation/guards/roles.guard';
@@ -43,8 +48,12 @@ import { RolesGuard } from './presentation/guards/roles.guard';
   providers: [
     ...identityProviders,
     JwtStrategy,
+    GoogleStrategy,
+    GithubStrategy,
     Reflector,
     JwtAuthGuard,
+    GoogleAuthGuard,
+    GithubAuthGuard,
     RolesGuard,
     PermissionsGuard,
     {
@@ -71,6 +80,15 @@ import { RolesGuard } from './presentation/guards/roles.guard';
       provide: GetMeUseCase,
       useFactory: (users) => new GetMeUseCase(users),
       inject: [IDENTITY_TOKENS.USER_REPOSITORY],
+    },
+    {
+      provide: SocialLoginUseCase,
+      useFactory: (users, tokenService) =>
+        new SocialLoginUseCase(users, tokenService),
+      inject: [
+        IDENTITY_TOKENS.USER_REPOSITORY,
+        IDENTITY_TOKENS.TOKEN_SERVICE,
+      ],
     },
     {
       provide: AssignRoleUseCase,

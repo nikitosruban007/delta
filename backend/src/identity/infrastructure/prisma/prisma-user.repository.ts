@@ -27,19 +27,55 @@ export class PrismaUserRepository implements IUserRepository {
     return user ? this.toUserAccess(user) : null;
   }
 
+  async findByGoogleId(googleId: string): Promise<UserAccess | null> {
+    const user = await this.prisma.users.findUnique({
+      where: { google_id: googleId },
+    });
+
+    return user ? this.toUserAccess(user) : null;
+  }
+
+  async findByGithubId(githubId: string): Promise<UserAccess | null> {
+    const user = await this.prisma.users.findUnique({
+      where: { github_id: githubId },
+    });
+
+    return user ? this.toUserAccess(user) : null;
+  }
+
   async create(input: {
     email: string;
-    passwordHash: string;
+    passwordHash?: string | null;
     name: string;
     avatarUrl?: string | null;
+    googleId?: string | null;
+    githubId?: string | null;
   }): Promise<UserAccess> {
     const user = await this.prisma.users.create({
       data: {
         email: input.email,
-        password_hash: input.passwordHash,
+        password_hash: input.passwordHash ?? null,
         name: input.name,
         avatar_url: input.avatarUrl ?? null,
+        google_id: input.googleId ?? null,
+        github_id: input.githubId ?? null,
       },
+    });
+
+    return this.toUserAccess(user);
+  }
+
+  async linkSocialAccount(input: {
+    userId: string;
+    provider: 'google' | 'github';
+    providerId: string;
+  }): Promise<UserAccess> {
+    const user = await this.prisma.users.update({
+      where: { id: this.parseId(input.userId) },
+      data:
+        input.provider === 'google'
+          ? { google_id: input.providerId }
+          : { github_id: input.providerId },
     });
 
     return this.toUserAccess(user);
@@ -107,7 +143,9 @@ export class PrismaUserRepository implements IUserRepository {
   private toUserAccess(user: {
     id: number;
     email: string;
-    password_hash: string;
+    password_hash: string | null;
+    google_id: string | null;
+    github_id: string | null;
     name: string;
     avatar_url: string | null;
     status: 'active' | 'disabled' | null;
@@ -116,6 +154,8 @@ export class PrismaUserRepository implements IUserRepository {
       id: String(user.id),
       email: user.email,
       passwordHash: user.password_hash,
+      googleId: user.google_id,
+      githubId: user.github_id,
       name: user.name,
       avatarUrl: user.avatar_url,
       isActive: user.status !== 'disabled',
@@ -128,6 +168,8 @@ export class PrismaUserRepository implements IUserRepository {
       id: String(user.id),
       email: user.email,
       passwordHash: user.password_hash,
+      googleId: user.google_id,
+      githubId: user.github_id,
       name: user.name,
       avatarUrl: user.avatar_url,
       isActive: user.status !== 'disabled',

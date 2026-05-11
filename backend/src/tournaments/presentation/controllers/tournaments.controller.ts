@@ -1,18 +1,23 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { UpdateTournamentDto } from '../dto/update-tournament.dto';
+import { TournamentStatus } from '../../domain/enums/tournament-status.enum';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { RegisterTournamentUseCase } from '../../application/use-cases/register-tournament.use-case';
 import { PublishTournamentUseCase } from '../../application/use-cases/publish-tournament.use-case';
+import { FinishEvaluationUseCase } from '../../application/use-cases/finish-evaluation.use-case';
 import { CreateTournamentDto } from '../dto/create-tournament.dto';
 import { PublishTournamentDto } from '../dto/publish-tournament.dto';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
@@ -29,6 +34,7 @@ export class TournamentsController {
   constructor(
     private readonly registerTournament: RegisterTournamentUseCase,
     private readonly publishTournament: PublishTournamentUseCase,
+    private readonly finishEvaluation: FinishEvaluationUseCase,
     @Inject(TOURNAMENT_REPOSITORY) private readonly repo: TournamentRepositoryPort,
   ) {}
 
@@ -81,6 +87,44 @@ export class TournamentsController {
     });
   }
 
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update tournament fields (owner or admin only)' })
+  async update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateTournamentDto,
+  ) {
+    const tournament = await this.repo.findTournamentById(id);
+    if (!tournament) throw new NotFoundException('Tournament not found');
+    const isAdmin = user.roles.includes('ADMIN');
+    if (!isAdmin && tournament.organizerId !== user.id) {
+      throw new ForbiddenException('You do not own this tournament');
+    }
+    if (
+      dto.teamSizeMin !== undefined &&
+      dto.teamSizeMax !== undefined &&
+      dto.teamSizeMin > dto.teamSizeMax
+    ) {
+      throw new BadRequestException('teamSizeMin cannot exceed teamSizeMax');
+    }
+    return this.repo.updateTournament(id, {
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.rules !== undefined && { rules: dto.rules }),
+      ...(dto.registrationDeadline !== undefined && {
+        registrationDeadline: dto.registrationDeadline ? new Date(dto.registrationDeadline) : null,
+      }),
+      ...(dto.startsAt !== undefined && { startsAt: dto.startsAt ? new Date(dto.startsAt) : null }),
+      ...(dto.endsAt !== undefined && { endsAt: dto.endsAt ? new Date(dto.endsAt) : null }),
+      ...(dto.maxTeams !== undefined && { maxTeams: dto.maxTeams }),
+      ...(dto.teamSizeMin !== undefined && { teamSizeMin: dto.teamSizeMin }),
+      ...(dto.teamSizeMax !== undefined && { teamSizeMax: dto.teamSizeMax }),
+      ...(dto.status !== undefined && { status: dto.status as TournamentStatus }),
+    });
+  }
+
   @Put('publish')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -89,6 +133,21 @@ export class TournamentsController {
     if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
       throw new ForbiddenException('Only admins and organizers can publish tournaments');
     }
-    return this.publishTournament.execute(dto.tournamentId, user.id);
+    return this.publishTournament.execute(dto.tournamentId, user.id, user.roles.includes('ADMIN'));
+  }
+
+  @Post(':id/finish')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Finalize evaluation: lock results, rebuild leaderboard, set finished status' })
+  async finish(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
+      throw new ForbiddenException('Only admins and organizers can finalize tournaments');
+    }
+    return this.finishEvaluation.execute({
+      tournamentId: id,
+      organizerId: user.id,
+      organizerIsAdmin: user.roles.includes('ADMIN'),
+    });
   }
 }

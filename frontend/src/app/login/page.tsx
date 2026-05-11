@@ -13,7 +13,7 @@ import {
 } from "@/components/shared/AuthShell";
 import { assets } from "@/lib/assets";
 import { useAuth } from "@/contexts/auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email("Введіть коректний email"),
@@ -32,6 +32,10 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Partial<FormState>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSocialLogin = (provider: "google" | "github") => {
+    window.location.href = authApi.socialAuthUrl(provider);
+  };
 
   const handleChange = (field: keyof FormState) => (value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -128,6 +132,7 @@ export default function LoginPage() {
         <button
           type="button"
           aria-label="Увійти через Google"
+          onClick={() => handleSocialLogin("google")}
           className="rounded-2xl border border-[#d8e0ed] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
           <Image src={assets.google} alt="" width={44} height={44} />
@@ -135,6 +140,7 @@ export default function LoginPage() {
         <button
           type="button"
           aria-label="Увійти через GitHub"
+          onClick={() => handleSocialLogin("github")}
           className="rounded-2xl border border-[#d8e0ed] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
           <Image src={assets.github} alt="" width={44} height={44} />

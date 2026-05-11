@@ -31,7 +31,7 @@ export class JudgesController {
   ) {}
 
   @Get('submissions')
-  @ApiOperation({ summary: 'List all submitted work for the current judge to review' })
+  @ApiOperation({ summary: 'List submitted work assigned to the current judge' })
   async listSubmissions(@CurrentUser() user: AuthUser) {
     if (!user.roles.includes('JUDGE') && !user.roles.includes('ADMIN')) {
       throw new ForbiddenException('Only judges and admins can view submissions for scoring');
@@ -40,16 +40,22 @@ export class JudgesController {
   }
 
   @Post('assign')
-  @ApiOperation({ summary: 'Assign a judge to a tournament (Admin/Organizer only)' })
+  @ApiOperation({ summary: 'Assign a judge to a tournament/stage (organizer of that tournament or admin only)' })
   async assign(@CurrentUser() user: AuthUser, @Body() dto: AssignJudgeDto) {
     if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
       throw new ForbiddenException('Only admins and organizers can assign judges');
     }
-    return this.assignJudge.execute(dto);
+    return this.assignJudge.execute({
+      tournamentId: dto.tournamentId,
+      judgeId: dto.judgeId,
+      stageId: dto.stageId ?? null,
+      organizerId: user.id,
+      organizerIsAdmin: user.roles.includes('ADMIN'),
+    });
   }
 
   @Post('score')
-  @ApiOperation({ summary: 'Score a submission (Judge/Admin only)' })
+  @ApiOperation({ summary: 'Score a submission (judge must be assigned to the tournament/stage)' })
   async score(@CurrentUser() user: AuthUser, @Body() dto: ScoreSubmissionDto) {
     if (!user.roles.includes('JUDGE') && !user.roles.includes('ADMIN')) {
       throw new ForbiddenException('Only judges and admins can score submissions');
@@ -58,6 +64,7 @@ export class JudgesController {
       submissionId: dto.submissionId,
       judgeId: user.id,
       score: dto.score,
+      criteria: dto.criteria,
       comment: dto.comment ?? null,
     });
   }

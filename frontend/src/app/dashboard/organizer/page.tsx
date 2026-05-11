@@ -6,12 +6,15 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     CheckCircle2,
+    Edit3,
     ExternalLink,
+    Flag,
     Loader2,
+    Megaphone,
     Plus,
     Trophy,
 } from "lucide-react";
-import { tournamentsApi, type Tournament } from "@/lib/api";
+import { tournamentsApi, tournamentManagementApi, ApiError, type Tournament } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/contexts/language-context";
 import Footer from "@/components/shared/Footer";
@@ -31,6 +34,11 @@ function TournamentRow({ tournament, token }: { tournament: Tournament; token: s
 
     const publishMutation = useMutation({
         mutationFn: () => tournamentsApi.publish(tournament.id, token),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["all-tournaments"] }),
+    });
+
+    const finishMutation = useMutation({
+        mutationFn: () => tournamentManagementApi.finish(tournament.id, token),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["all-tournaments"] }),
     });
 
@@ -73,6 +81,43 @@ function TournamentRow({ tournament, token }: { tournament: Tournament; token: s
                 {publishMutation.isSuccess && (
                     <span className="text-[12px] text-[#4CAF50] font-medium">{t("dashboard.organizer.published")}</span>
                 )}
+                {(tournament.status === "active" || tournament.status === "registration") && (
+                    <button
+                        onClick={() => {
+                            if (window.confirm("Завершити турнір? Це зафіксує лідерборд.")) {
+                                finishMutation.mutate();
+                            }
+                        }}
+                        disabled={finishMutation.isPending}
+                        className="flex items-center gap-1.5 bg-[#1B345B] hover:bg-[#0f2546] disabled:opacity-50 transition text-white px-3 py-2 rounded-lg text-[12px] font-semibold"
+                    >
+                        {finishMutation.isPending ? (
+                            <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                            <Flag size={13} />
+                        )}
+                        Завершити
+                    </button>
+                )}
+                {finishMutation.error && (
+                    <span className="text-[12px] text-[#E06C75]">
+                        {finishMutation.error instanceof ApiError
+                            ? finishMutation.error.message
+                            : (finishMutation.error as Error).message}
+                    </span>
+                )}
+                <Link
+                    href={`/dashboard/organizer/${tournament.id}/edit`}
+                    className="flex items-center gap-1.5 text-[#6082e6] hover:text-[#4d6bca] transition text-[12px] font-medium"
+                >
+                    <Edit3 size={14} /> Редагувати
+                </Link>
+                <Link
+                    href={`/tournaments/${tournament.id}/announcements`}
+                    className="flex items-center gap-1.5 text-[#6082e6] hover:text-[#4d6bca] transition text-[12px] font-medium"
+                >
+                    <Megaphone size={14} /> Оголошення
+                </Link>
                 <Link
                     href={`/tournaments/${tournament.id}`}
                     className="flex items-center gap-1.5 text-[#6082e6] hover:text-[#4d6bca] transition text-[12px] font-medium"

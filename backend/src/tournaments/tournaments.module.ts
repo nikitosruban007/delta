@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IdentityModule } from '../identity/identity.module';
+import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 import { TournamentsController } from './presentation/controllers/tournaments.controller';
 import { StagesController } from './presentation/controllers/stages.controller';
 import { TeamsController } from './presentation/controllers/teams.controller';
 import { SubmissionsController } from './presentation/controllers/submissions.controller';
 import { AnnouncementsController } from './presentation/controllers/announcements.controller';
 import { JudgesController } from './presentation/controllers/judges.controller';
+import { CriteriaController } from './presentation/controllers/criteria.controller';
 import { TournamentWsGateway } from './infrastructure/websocket/tournaments.gateway';
 import { PrismaTournamentRepository } from './infrastructure/prisma/tournament.repository';
 import { TournamentCacheService } from './infrastructure/redis/tournament-cache.service';
+import { TournamentStatusScheduler } from './infrastructure/scheduler/tournament-status.scheduler';
+import { FinishEvaluationUseCase } from './application/use-cases/finish-evaluation.use-case';
 import { TournamentEventService } from './presentation/services/tournaments.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -28,7 +32,7 @@ import { CACHE_PORT } from './application/ports/cache.port';
 import { NOTIFICATION_PORT } from './application/ports/notification.port';
 
 @Module({
-  imports: [PrismaModule, IdentityModule],
+  imports: [PrismaModule, IdentityModule, LeaderboardModule],
   controllers: [
     TournamentsController,
     StagesController,
@@ -36,6 +40,7 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port';
     SubmissionsController,
     AnnouncementsController,
     JudgesController,
+    CriteriaController,
   ],
   providers: [
     { provide: TOURNAMENT_REPOSITORY, useClass: PrismaTournamentRepository },
@@ -51,6 +56,8 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port';
     CreateAnnouncementUseCase,
     AssignJudgeUseCase,
     ScoreSubmissionUseCase,
+    FinishEvaluationUseCase,
+    TournamentStatusScheduler,
 
     TournamentEventService,
   ],

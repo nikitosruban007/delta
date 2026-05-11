@@ -12,6 +12,7 @@ import {
 import { authApi, type AuthUser } from "@/lib/api";
 
 const TOKEN_KEY = "foldup_token";
+const TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 type AuthState = {
   user: AuthUser | null;
@@ -36,6 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading: true,
   });
 
+  const setStoredToken = useCallback((token: string | null) => {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+      document.cookie = `foldup_token=${token}; Path=/; Max-Age=${TOKEN_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax`;
+      return;
+    }
+
+    localStorage.removeItem(TOKEN_KEY);
+    document.cookie = "foldup_token=; Path=/; Max-Age=0; SameSite=Lax";
+  }, []);
+
   // Restore session on mount
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -44,34 +56,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setStoredToken(token);
+
     authApi
       .me(token)
       .then((user) => setState({ user, token, isLoading: false }))
       .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
+        setStoredToken(null);
         setState({ user: null, token: null, isLoading: false });
       });
-  }, []);
+  }, [setStoredToken]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
-    localStorage.setItem(TOKEN_KEY, res.accessToken);
+    setStoredToken(res.accessToken);
     setState({ user: res.user, token: res.accessToken, isLoading: false });
-  }, []);
+  }, [setStoredToken]);
 
   const register = useCallback(
     async (email: string, password: string, name: string) => {
       const res = await authApi.register({ email, password, name });
-      localStorage.setItem(TOKEN_KEY, res.accessToken);
+      setStoredToken(res.accessToken);
       setState({ user: res.user, token: res.accessToken, isLoading: false });
     },
-    [],
+    [setStoredToken],
   );
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+    setStoredToken(null);
     setState({ user: null, token: null, isLoading: false });
-  }, []);
+  }, [setStoredToken]);
 
   const hasRole = useCallback(
     (role: string) => state.user?.roles.includes(role) ?? false,

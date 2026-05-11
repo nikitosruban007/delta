@@ -51,6 +51,10 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
         ...(data.registrationDeadline !== undefined && { registration_deadline: data.registrationDeadline }),
         ...(data.startsAt !== undefined && { starts_at: data.startsAt }),
         ...(data.endsAt !== undefined && { ends_at: data.endsAt }),
+        ...(data.maxTeams !== undefined && data.maxTeams !== null && { max_teams: data.maxTeams }),
+        ...(data.teamSizeMin !== undefined && data.teamSizeMin !== null && { team_size_min: data.teamSizeMin }),
+        ...(data.teamSizeMax !== undefined && data.teamSizeMax !== null && { team_size_max: data.teamSizeMax }),
+        ...(data.rules !== undefined && { rules: data.rules }),
       },
     });
     return this.toTournamentEntity(row);
@@ -235,8 +239,26 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
   }
 
   async listSubmissionsForJudge(judgeId: string): Promise<import('../../application/ports/tournament.repository.port').SubmissionWithEvaluation[]> {
+    const numericJudge = Number(judgeId);
+    const assignments = await this.prisma.judge_assignments.findMany({
+      where: { judge_id: numericJudge },
+      select: { tournament_id: true, stage_id: true },
+    });
+    if (assignments.length === 0) return [];
+
+    const stageIds = assignments.filter((a) => a.stage_id !== null).map((a) => a.stage_id!) as number[];
+    const wholeTournamentIds = assignments
+      .filter((a) => a.stage_id === null)
+      .map((a) => a.tournament_id);
+
+    const orConditions: any[] = [];
+    if (stageIds.length > 0) orConditions.push({ round_id: { in: stageIds } });
+    if (wholeTournamentIds.length > 0) {
+      orConditions.push({ rounds: { tournament_id: { in: wholeTournamentIds } } });
+    }
+
     const rows = await this.prisma.submissions.findMany({
-      where: { status: 'submitted' },
+      where: { AND: [{ status: { in: ['submitted', 'reviewed'] } }, { OR: orConditions }] },
       include: {
         rounds: {
           include: {
@@ -319,6 +341,10 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     starts_at?: Date | null;
     ends_at?: Date | null;
     created_at?: Date | null;
+    max_teams?: number | null;
+    team_size_min?: number | null;
+    team_size_max?: number | null;
+    rules?: string | null;
   }): Tournament => {
     return new Tournament(
       String(row.id),
@@ -331,6 +357,10 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
       row.ends_at ?? null,
       row.created_at ?? new Date(),
       row.created_at ?? new Date(),
+      row.max_teams ?? null,
+      row.team_size_min ?? null,
+      row.team_size_max ?? null,
+      row.rules ?? null,
     );
   };
 

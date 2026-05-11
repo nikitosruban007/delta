@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,8 +11,9 @@ import {
   Field,
   PasswordField,
 } from "@/components/shared/AuthShell";
+import { assets } from "@/lib/assets";
 import { useAuth } from "@/contexts/auth-context";
-import { ApiError } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 
 const registerSchema = z
   .object({
@@ -44,6 +46,10 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Partial<FormState>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSocialLogin = (provider: "google" | "github") => {
+    window.location.href = authApi.socialAuthUrl(provider);
+  };
 
   const handleChange = (field: keyof FormState) => (value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -138,6 +144,30 @@ export default function RegisterPage() {
           </button>
         </div>
       </form>
+
+      <div className="my-6 border-t border-[#d8e0ed]" />
+
+      <p className="mb-4 text-center text-lg font-semibold text-[#526079]">
+        Зареєструватися через
+      </p>
+      <div className="mb-6 flex justify-center gap-5">
+        <button
+          type="button"
+          aria-label="Зареєструватися через Google"
+          onClick={() => handleSocialLogin("google")}
+          className="rounded-2xl border border-[#d8e0ed] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <Image src={assets.google} alt="" width={44} height={44} />
+        </button>
+        <button
+          type="button"
+          aria-label="Зареєструватися через GitHub"
+          onClick={() => handleSocialLogin("github")}
+          className="rounded-2xl border border-[#d8e0ed] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <Image src={assets.github} alt="" width={44} height={44} />
+        </button>
+      </div>
 
       <div className="mt-6 text-center">
         <span className="text-lg text-[#526079]">Вже маєте акаунт? </span>
