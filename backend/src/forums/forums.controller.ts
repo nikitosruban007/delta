@@ -1,5 +1,6 @@
 /* istanbul ignore file -- HTTP behavior is covered by Supertest; Nest decorators add non-actionable branch noise. */
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -63,10 +64,7 @@ export class ForumsController {
   @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update forum category (ADMIN only)' })
-  updateCategory(
-    @Param('id') id: string,
-    @Body() dto: UpdateForumCategoryDto,
-  ) {
+  updateCategory(@Param('id') id: string, @Body() dto: UpdateForumCategoryDto) {
     return this.forumsService.updateCategory(id, dto);
   }
 
@@ -123,12 +121,15 @@ export class ForumsController {
   }
 
   @Get('topics/:topicId/posts')
-  @ApiOperation({ summary: 'List forum topic posts' })
+  @ApiOperation({
+    summary: 'List forum topic posts (threaded with vote scores)',
+  })
   listPosts(
     @Param('topicId') topicId: string,
     @Query() query: ListForumPostsQueryDto,
+    @CurrentUser() user?: ForumUser,
   ) {
-    return this.forumsService.listPosts(topicId, query);
+    return this.forumsService.listPosts(topicId, query, user);
   }
 
   @Post('topics/:topicId/posts')
@@ -158,8 +159,74 @@ export class ForumsController {
   @Delete('posts/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete own forum post or any post as admin' })
+  @ApiOperation({
+    summary:
+      'Delete own forum post or any post as admin (soft-delete if has replies)',
+  })
   deletePost(@Param('id') id: string, @CurrentUser() user: ForumUser) {
     return this.forumsService.deletePost(id, user);
+  }
+
+  @Post('posts/:id/vote')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Vote on a forum post (value: 1, -1, or 0 to clear)',
+  })
+  votePost(
+    @Param('id') id: string,
+    @Body() dto: { value: number },
+    @CurrentUser() user: ForumUser,
+  ) {
+    const value = dto?.value;
+    if (value !== 1 && value !== -1 && value !== 0) {
+      throw new BadRequestException('value must be one of -1, 0, 1');
+    }
+    return this.forumsService.votePost(id, value, user);
+  }
+
+  @Post('posts/:id/report')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Report a forum post (open report opened until ADMIN resolves)',
+  })
+  reportPost(
+    @Param('id') id: string,
+    @Body() dto: { reason: string },
+    @CurrentUser() user: ForumUser,
+  ) {
+    return this.forumsService.reportPost(id, dto?.reason ?? '', user);
+  }
+
+  @Post('topics/:id/report')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Report a forum topic' })
+  reportTopic(
+    @Param('id') id: string,
+    @Body() dto: { reason: string },
+    @CurrentUser() user: ForumUser,
+  ) {
+    return this.forumsService.reportTopic(id, dto?.reason ?? '', user);
+  }
+
+  @Get('reports')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List forum reports (ADMIN only)' })
+  listReports(
+    @Query('status') status: 'open' | 'resolved' | 'all' = 'open',
+    @CurrentUser() user: ForumUser,
+  ) {
+    return this.forumsService.listReports(user, status ?? 'open');
+  }
+
+  @Post('reports/:id/resolve')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resolve a forum report (ADMIN only)' })
+  resolveReport(@Param('id') id: string, @CurrentUser() user: ForumUser) {
+    return this.forumsService.resolveReport(id, user);
   }
 }

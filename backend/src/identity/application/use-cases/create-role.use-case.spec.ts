@@ -12,12 +12,13 @@ describe('CreateRoleUseCase', () => {
     delete: jest.fn(),
   });
 
-  const createPermissionRepository = (): jest.Mocked<IPermissionRepository> => ({
-    findById: jest.fn(),
-    findByCode: jest.fn(),
-    list: jest.fn(),
-    create: jest.fn(),
-  });
+  const createPermissionRepository =
+    (): jest.Mocked<IPermissionRepository> => ({
+      findById: jest.fn(),
+      findByCode: jest.fn(),
+      list: jest.fn(),
+      create: jest.fn(),
+    });
 
   it('persists validated permission ids when permissionCodes are provided', async () => {
     const roles = createRoleRepository();

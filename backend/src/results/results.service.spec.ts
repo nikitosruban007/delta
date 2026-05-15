@@ -123,18 +123,18 @@ describe('ResultsService', () => {
   it('rejects invalid ids and missing relations', async () => {
     const { service, prisma } = createService();
 
-    await expect(service.createResult('nope', { userId: 7, score: 1 })).rejects.toThrow(
-      'Invalid tournamentId',
-    );
+    await expect(
+      service.createResult('nope', { userId: 7, score: 1 }),
+    ).rejects.toThrow('Invalid tournamentId');
 
     prisma.tournaments.findUnique.mockResolvedValueOnce(null);
-    await expect(service.createResult('5', { userId: 7, score: 1 })).rejects.toThrow(
-      'Tournament not found',
-    );
+    await expect(
+      service.createResult('5', { userId: 7, score: 1 }),
+    ).rejects.toThrow('Tournament not found');
 
     prisma.users.findUnique.mockResolvedValueOnce(null);
-    await expect(service.createResult('5', { userId: 7, score: 1 })).rejects.toThrow(
-      'User not found',
-    );
+    await expect(
+      service.createResult('5', { userId: 7, score: 1 }),
+    ).rejects.toThrow('User not found');
   });
 });

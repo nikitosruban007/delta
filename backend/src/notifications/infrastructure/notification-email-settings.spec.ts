@@ -87,7 +87,6 @@ describe('resolveNotificationsEmailSettings', () => {
     });
   });
 
-
   it('throws error for invalid SMTP secure and port values', () => {
     expect(() =>
       resolveNotificationsEmailSettings({

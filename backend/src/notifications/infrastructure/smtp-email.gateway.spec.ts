@@ -10,7 +10,9 @@ jest.mock('nodemailer', () => ({
 
 describe('SmtpEmailGateway', () => {
   it('creates a transporter from settings and sends email messages', async () => {
-    const sendMail = jest.fn().mockResolvedValue({ accepted: ['user@example.com'] });
+    const sendMail = jest
+      .fn()
+      .mockResolvedValue({ accepted: ['user@example.com'] });
     const createTransport = nodemailer.createTransport as jest.Mock;
     createTransport.mockReturnValue({ sendMail });
 

@@ -8,6 +8,8 @@ import { ExportModule } from './export/export.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ResultsModule } from './results/results.module';
 import { TournamentsModule } from './tournaments/tournaments.module';
+import { SearchModule } from './search/search.module';
+import { CertificatesModule } from './certificates/certificates.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { TournamentsModule } from './tournaments/tournaments.module';
     LeaderboardModule,
     ResultsModule,
     ExportModule,
+    SearchModule,
+    CertificatesModule,
   ],
 })
 export class AppModule {}

@@ -19,7 +19,8 @@ export interface RegisterTournamentInput {
 @Injectable()
 export class RegisterTournamentUseCase {
   constructor(
-    @Inject(TOURNAMENT_REPOSITORY) private readonly repo: TournamentRepositoryPort,
+    @Inject(TOURNAMENT_REPOSITORY)
+    private readonly repo: TournamentRepositoryPort,
     @Inject(CACHE_PORT) private readonly cache: CachePort,
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
   ) {}
@@ -36,7 +37,11 @@ export class RegisterTournamentUseCase {
     });
 
     await this.cache.set(`tournaments:${tournament.id}`, tournament, 300);
-    await this.notifier.emitToUser(input.organizerId, 'tournament.created', tournament);
+    await this.notifier.emitToUser(
+      input.organizerId,
+      'tournament.created',
+      tournament,
+    );
 
     return tournament;
   }

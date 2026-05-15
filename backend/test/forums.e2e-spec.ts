@@ -68,15 +68,17 @@ describe('ForumsController (e2e)', () => {
   });
 
   it('routes category endpoints to the forum service', async () => {
-    forumsService.listCategories.mockResolvedValue([{ id: 1, title: 'General' }]);
+    forumsService.listCategories.mockResolvedValue([
+      { id: 1, title: 'General' },
+    ]);
     forumsService.getCategory.mockResolvedValue({ id: 1, title: 'General' });
     forumsService.createCategory.mockResolvedValue({ id: 2, title: 'News' });
     forumsService.updateCategory.mockResolvedValue({ id: 2, title: 'Updates' });
     forumsService.deleteCategory.mockResolvedValue({ id: 2, deleted: true });
 
-    await request(httpServer).get('/forums/categories').expect(200, [
-      { id: 1, title: 'General' },
-    ]);
+    await request(httpServer)
+      .get('/forums/categories')
+      .expect(200, [{ id: 1, title: 'General' }]);
     await request(httpServer).get('/forums/categories/1').expect(200, {
       id: 1,
       title: 'General',
@@ -95,7 +97,9 @@ describe('ForumsController (e2e)', () => {
     });
 
     expect(forumsService.getCategory).toHaveBeenCalledWith('1');
-    expect(forumsService.createCategory).toHaveBeenCalledWith({ title: 'News' });
+    expect(forumsService.createCategory).toHaveBeenCalledWith({
+      title: 'News',
+    });
     expect(forumsService.updateCategory).toHaveBeenCalledWith('2', {
       title: 'Updates',
     });
@@ -105,7 +109,10 @@ describe('ForumsController (e2e)', () => {
   it('routes topic endpoints to the forum service with query and current user', async () => {
     const topic = { id: 11, title: 'First topic' };
 
-    forumsService.listTopics.mockResolvedValue({ items: [topic], pagination: {} });
+    forumsService.listTopics.mockResolvedValue({
+      items: [topic],
+      pagination: {},
+    });
     forumsService.getTopic.mockResolvedValue(topic);
     forumsService.createTopic.mockResolvedValue(topic);
     forumsService.updateTopic.mockResolvedValue({ ...topic, title: 'Updated' });
@@ -152,7 +159,10 @@ describe('ForumsController (e2e)', () => {
   it('routes post endpoints to the forum service with current user', async () => {
     const post = { id: 21, topicId: 11, content: 'Reply' };
 
-    forumsService.listPosts.mockResolvedValue({ items: [post], pagination: {} });
+    forumsService.listPosts.mockResolvedValue({
+      items: [post],
+      pagination: {},
+    });
     forumsService.createPost.mockResolvedValue(post);
     forumsService.updatePost.mockResolvedValue({ ...post, content: 'Updated' });
     forumsService.deletePost.mockResolvedValue({ id: 21, deleted: true });
@@ -194,7 +204,10 @@ describe('ForumsController (e2e)', () => {
   });
 
   it('validates DTO payloads at the HTTP boundary', async () => {
-    await request(httpServer).post('/forums/categories').send({ title: 'x' }).expect(400);
+    await request(httpServer)
+      .post('/forums/categories')
+      .send({ title: 'x' })
+      .expect(400);
     await request(httpServer)
       .post('/forums/topics')
       .send({ categoryId: 0, title: 'no', content: '' })

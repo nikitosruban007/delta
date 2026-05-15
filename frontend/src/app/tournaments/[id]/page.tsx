@@ -2,17 +2,35 @@
 
 import Link from "next/link";
 import { useParams, notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardList, Info, Loader2, UsersRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Award,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Crown,
+  Info,
+  Loader2,
+  Star,
+  UsersRound,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import BrandMark from "@/components/shared/BrandMark";
 import { AccentDot, DotGrid } from "@/components/shared/Decor";
 import Footer from "@/components/shared/Footer";
-import { tournamentsApi } from "@/lib/api";
+import {
+  announcementsApi,
+  criteriaApi,
+  tournamentsApi,
+} from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/contexts/language-context";
 
 export default function TournamentDetailsPage() {
   const { t, language, setLanguage } = useLanguage();
+  const { token, user, hasRole } = useAuth();
   const params = useParams();
   const id = params.id as string;
 
@@ -22,15 +40,49 @@ export default function TournamentDetailsPage() {
     error,
   } = useQuery({
     queryKey: ["tournament", id],
-    queryFn: () => tournamentsApi.getById(id),
+    queryFn: () => tournamentsApi.getById(id, token),
     retry: false,
   });
 
   const { data: rounds } = useQuery({
     queryKey: ["tournament-rounds", id],
-    queryFn: () => tournamentsApi.getRounds(id),
+    queryFn: () => tournamentsApi.getRounds(id, token),
     enabled: Boolean(tournament),
   });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ["tournament-teams", id],
+    queryFn: () => tournamentsApi.getTeams(id, token),
+    enabled: Boolean(tournament),
+  });
+
+  const { data: criteria = [] } = useQuery({
+    queryKey: ["criteria", id],
+    queryFn: () => criteriaApi.list(id, token),
+    enabled: Boolean(tournament),
+  });
+
+  const { data: announcements = [] } = useQuery({
+    queryKey: ["announcements", id],
+    queryFn: () => announcementsApi.list(id, token),
+    enabled: Boolean(tournament),
+  });
+
+  const { data: teamLeaderboard } = useQuery({
+    queryKey: ["tournament-leaderboard-teams", id],
+    queryFn: () => tournamentsApi.getTeamLeaderboard(id, token),
+    enabled: Boolean(tournament && tournament.status === "finished"),
+  });
+
+  const myCaptainTeam = teams.find((tm) => tm.captainId === user?.id);
+  const myMemberTeam = teams.find(
+    (tm) =>
+      // Team membership is exposed indirectly through captainId; for "member" status
+      // the FE relies on `usersApi.myTournaments` (the dedicated page).
+      // Here we only surface captain ownership reliably.
+      tm.captainId === user?.id,
+  );
+  const myTeam = myCaptainTeam ?? myMemberTeam ?? null;
 
   if (isLoading) {
     return (
@@ -59,6 +111,12 @@ export default function TournamentDetailsPage() {
   };
 
   const canRegister = tournament.status === "registration";
+  // Organizers (and ADMIN) can add a team manually even after registration closes,
+  // as long as the tournament is not yet finished.
+  const isOwner = user?.id === tournament.organizerId;
+  const isAdmin = hasRole("ADMIN");
+  const organizerCanAdd =
+    (isOwner || isAdmin) && tournament.status !== "finished";
   const locale = language === "uk" ? "uk-UA" : "en-US";
 
   const formattedDeadline = tournament.registrationDeadline
@@ -125,6 +183,28 @@ export default function TournamentDetailsPage() {
         <AccentDot tone="blue" className="-left-16 top-36 h-52 w-52 opacity-70" />
         <AccentDot tone="blue" className="right-[11%] top-[460px] h-24 w-24 opacity-70" />
         <AccentDot tone="orange" className="right-[8%] top-44 h-9 w-9" />
+
+        <nav className="border-b border-[#d6d6d9] bg-[#e7e7e9]">
+          <div className="mx-auto flex w-full max-w-[1440px] items-stretch px-5 md:px-12">
+            <span className="border-r border-[#d0d0d2] bg-white px-5 py-3 text-sm font-semibold underline underline-offset-4">
+              Головна ›
+            </span>
+            <Link
+              href={`/tournaments/${tournament.id}/leaderboard`}
+              className="border-r border-[#d0d0d2] px-5 py-3 text-sm font-medium text-[#3a4351] transition hover:bg-[#dcdce0]"
+            >
+              Лідерборд ›
+            </Link>
+            {(hasRole("JUDGE") || hasRole("ADMIN")) && (
+              <Link
+                href="/dashboard/jury"
+                className="px-5 py-3 text-sm font-medium text-[#3a4351] transition hover:bg-[#dcdce0]"
+              >
+                Список робіт для оцінювання ›
+              </Link>
+            )}
+          </div>
+        </nav>
 
         <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 py-10 md:px-12">
           <div className="overflow-hidden rounded-[8px] border border-[#d0d0d2] bg-white shadow-[0_18px_60px_rgba(17,17,17,0.08)]">
@@ -226,6 +306,212 @@ export default function TournamentDetailsPage() {
           </section>
         )}
 
+        {myTeam && (
+          <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-6 md:px-12">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-[#bbf7d0] bg-[#f0fdf4] px-5 py-4 text-sm text-[#166534] shadow-sm md:px-8">
+              <span className="inline-flex items-center gap-2 font-semibold">
+                <CheckCircle2 className="size-4" />
+                Ви вже зареєстровані: команда «{myTeam.name}»
+                {myCaptainTeam && (
+                  <span className="ml-2 rounded-full bg-[#fef3c7] px-2 py-0.5 text-[11px] font-semibold text-[#92400e]">
+                    <Crown className="mr-1 inline size-3" />
+                    Капітан
+                  </span>
+                )}
+              </span>
+              {(tournament.status === "active" || tournament.status === "registration") && (
+                <Link
+                  href={`/tournaments/${id}/submission`}
+                  className="rounded-md bg-[#166534] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#125227]"
+                >
+                  Подати роботу →
+                </Link>
+              )}
+              {tournament.status === "finished" && (
+                <span className="rounded-md bg-[#16a34a]/20 px-3 py-1 text-xs font-semibold text-[#166534]">
+                  Турнір завершено
+                </span>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Registered teams */}
+        <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-8 md:px-12">
+          <div className="rounded-[8px] border border-[#d0d0d2] bg-white px-5 py-7 shadow-[0_12px_36px_rgba(17,17,17,0.06)] md:px-10">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5f72df]">
+                  Команди
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold md:text-3xl">
+                  Зареєстровані команди ({teams.length})
+                </h2>
+              </div>
+              <UsersRound className="size-8 text-[#777779]" />
+            </div>
+            {teams.length === 0 ? (
+              <p className="mt-5 text-sm text-[#666]">
+                Поки що жодної команди не зареєстровано.
+              </p>
+            ) : (
+              <ul className="mt-5 grid gap-2 md:grid-cols-2">
+                {teams.map((tm) => (
+                  <li
+                    key={tm.id}
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                      myCaptainTeam?.id === tm.id
+                        ? "border-[#16a34a] bg-[#f0fdf4]"
+                        : "border-[#e6e8ef] bg-[#fafbff]"
+                    }`}
+                  >
+                    <span className="truncate font-semibold text-[#111]">
+                      {tm.name}
+                    </span>
+                    {tm.captainId === user?.id && (
+                      <span className="rounded-full bg-[#fef3c7] px-2 py-0.5 text-[10px] font-semibold text-[#92400e]">
+                        Ваша
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {/* Criteria + Announcements side-by-side */}
+        <section className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-6 px-5 pb-8 md:grid-cols-2 md:px-12">
+          {/* Criteria */}
+          <div className="rounded-[8px] border border-[#d0d0d2] bg-white px-5 py-6 shadow-[0_12px_36px_rgba(17,17,17,0.06)] md:px-7">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#111]">Критерії оцінювання</h3>
+              <ClipboardList className="size-5 text-[#777779]" />
+            </div>
+            {criteria.length === 0 ? (
+              <p className="mt-4 text-sm text-[#666]">
+                Критерії ще не визначені.
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-1.5">
+                {criteria
+                  .filter((c) => c.parentId === null)
+                  .map((parent) => {
+                    const children = criteria.filter(
+                      (c) => c.parentId === parent.id,
+                    );
+                    return (
+                      <li key={parent.id} className="rounded-md bg-[#fafbff] px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-[#111]">
+                            {parent.title}
+                          </span>
+                          <span className="text-[11px] text-[#888]">
+                            max {parent.maxScore} · w {parent.weight}
+                          </span>
+                        </div>
+                        {parent.description && (
+                          <p className="mt-1 text-xs text-[#5b5f69]">
+                            {parent.description}
+                          </p>
+                        )}
+                        {children.length > 0 && (
+                          <ul className="ml-3 mt-1 space-y-0.5">
+                            {children.map((c) => (
+                              <li
+                                key={c.id}
+                                className="flex items-center justify-between text-xs text-[#5b5f69]"
+                              >
+                                <span>→ {c.title}</span>
+                                <span className="text-[10px] text-[#888]">
+                                  max {c.maxScore} · w {c.weight}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
+          </div>
+
+          {/* Announcements */}
+          <div className="rounded-[8px] border border-[#d0d0d2] bg-white px-5 py-6 shadow-[0_12px_36px_rgba(17,17,17,0.06)] md:px-7">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#111]">Оголошення</h3>
+              <Bell className="size-5 text-[#777779]" />
+            </div>
+            {announcements.length === 0 ? (
+              <p className="mt-4 text-sm text-[#666]">Оголошень ще немає.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {announcements.slice(0, 5).map((a) => (
+                  <li
+                    key={a.id}
+                    className="rounded-md border border-[#eef2ff] bg-[#fafbff] px-3 py-2"
+                  >
+                    <p className="text-sm font-semibold text-[#111]">{a.title}</p>
+                    {a.body && (
+                      <p className="mt-1 line-clamp-3 text-xs text-[#5b5f69]">
+                        {a.body}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[10px] text-[#888]">
+                      {a.author?.name ?? "—"} ·{" "}
+                      {a.createdAt
+                        ? new Date(a.createdAt).toLocaleDateString(locale)
+                        : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        {/* Leaderboard (only for finished tournaments) */}
+        {tournament.status === "finished" && teamLeaderboard && teamLeaderboard.items.length > 0 && (
+          <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-8 md:px-12">
+            <div className="rounded-[8px] border border-[#d0d0d2] bg-white px-5 py-7 shadow-[0_12px_36px_rgba(17,17,17,0.06)] md:px-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#5f72df]">
+                    Результати
+                  </p>
+                  <h2 className="mt-1 text-2xl font-semibold md:text-3xl">
+                    Підсумковий лідерборд
+                  </h2>
+                </div>
+                <Award className="size-8 text-[#f4a237]" />
+              </div>
+              <table className="mt-6 w-full text-sm">
+                <thead className="border-b border-[#e6e8ef] text-left text-xs uppercase tracking-wide text-[#5b5f69]">
+                  <tr>
+                    <th className="py-2 pr-2 font-semibold">Місце</th>
+                    <th className="py-2 pr-2 font-semibold">Команда</th>
+                    <th className="py-2 pr-2 text-right font-semibold">Бал</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamLeaderboard.items.map((row) => (
+                    <tr key={row.teamId ?? row.rank} className="border-b border-[#f1f1f1] last:border-b-0">
+                      <td className="py-2 pr-2 font-semibold text-[#1B345B]">
+                        {row.rank === 1 ? "🏆" : row.rank === 2 ? "🥈" : row.rank === 3 ? "🥉" : `#${row.rank}`}
+                      </td>
+                      <td className="py-2 pr-2">{row.teamName}</td>
+                      <td className="py-2 pr-2 text-right font-mono font-semibold">
+                        {row.totalScore.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         <section className="relative z-10 mx-auto w-full max-w-[1440px] px-5 pb-14 text-center md:px-12">
           <div className="rounded-[8px] border border-[#d0d0d2] bg-white px-5 py-9 shadow-[0_12px_36px_rgba(17,17,17,0.06)] md:px-10">
             <UsersRound className="mx-auto size-8 text-[#5f72df]" />
@@ -234,12 +520,24 @@ export default function TournamentDetailsPage() {
             </h2>
 
             <div className="mt-7 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              {canRegister ? (
+              {canRegister && !myCaptainTeam ? (
                 <Link
                   href={`/tournaments/${tournament.id}/join`}
                   className="inline-flex min-w-[230px] items-center justify-center rounded-[8px] bg-[#5f72df] px-7 py-2.5 text-base font-medium text-[#0a1f55] shadow-[0_12px_24px_rgba(95,114,223,0.28)] transition hover:bg-[#5366d5] md:text-[20px]"
                 >
                   {t("tournament.join")}
+                </Link>
+              ) : canRegister && myCaptainTeam ? (
+                <span className="inline-flex min-w-[230px] cursor-not-allowed items-center justify-center rounded-[8px] bg-[#d0d0d2] px-7 py-2.5 text-base font-medium text-[#666] md:text-[20px]">
+                  Команду вже зареєстровано
+                </span>
+              ) : organizerCanAdd ? (
+                <Link
+                  href={`/tournaments/${tournament.id}/join`}
+                  title="Реєстрація вже закрита для звичайних учасників, але організатор може додати команду вручну"
+                  className="inline-flex min-w-[260px] items-center justify-center rounded-[8px] bg-[#F4A237] px-6 py-2.5 text-base font-medium text-white shadow-[0_12px_24px_rgba(244,162,55,0.28)] transition hover:bg-[#e0901f] md:text-[18px]"
+                >
+                  Додати команду (організатор)
                 </Link>
               ) : (
                 <span className="inline-flex min-w-[230px] cursor-not-allowed items-center justify-center rounded-[8px] bg-[#d0d0d2] px-7 py-2.5 text-base font-medium text-[#888] md:text-[20px]">

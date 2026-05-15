@@ -35,19 +35,29 @@ export interface TournamentRepositoryPort {
   listStagesByTournament(tournamentId: string): Promise<Stage[]>;
   createTeam(data: Partial<Team>): Promise<Team>;
   findTeamById(id: string): Promise<Team | null>;
-  findTeamByTournamentAndCaptain(tournamentId: string, captainId: string): Promise<Team | null>;
+  findTeamByTournamentAndCaptain(
+    tournamentId: string,
+    captainId: string,
+  ): Promise<Team | null>;
   isTeamMember(teamId: string, userId: string): Promise<boolean>;
-  createSubmission(data: Partial<Submission> & {
-    videoUrl?: string | null;
-    liveDemoUrl?: string | null;
-    description?: string | null;
-  }): Promise<Submission>;
+  createSubmission(
+    data: Partial<Submission> & {
+      videoUrl?: string | null;
+      liveDemoUrl?: string | null;
+      description?: string | null;
+    },
+  ): Promise<Submission>;
   findSubmissionById(id: string): Promise<Submission | null>;
-  findSubmissionByTeamAndStage(teamId: string, stageId: string): Promise<Submission | null>;
+  findSubmissionByTeamAndStage(
+    teamId: string,
+    stageId: string,
+  ): Promise<Submission | null>;
   updateSubmission(id: string, data: Partial<Submission>): Promise<Submission>;
   listSubmissionsByTournament(tournamentId: string): Promise<Submission[]>;
   listSubmissionsForJudge(judgeId: string): Promise<SubmissionWithEvaluation[]>;
   createAnnouncement(data: Partial<Announcement>): Promise<Announcement>;
-  createJudgeAssignment(data: Partial<JudgeAssignment>): Promise<JudgeAssignment>;
+  createJudgeAssignment(
+    data: Partial<JudgeAssignment>,
+  ): Promise<JudgeAssignment>;
   findTournamentTeams(tournamentId: string): Promise<Team[]>;
 }

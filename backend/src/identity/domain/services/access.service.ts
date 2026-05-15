@@ -4,12 +4,14 @@ export type UserAccessSnapshot = {
 };
 
 export class AccessService {
-  buildAccessFromRoles(roles: Array<{
-    role: {
-      name: string;
-      permissions: Array<{ permission: { code: string } }>;
-    };
-  }>): UserAccessSnapshot {
+  buildAccessFromRoles(
+    roles: Array<{
+      role: {
+        name: string;
+        permissions: Array<{ permission: { code: string } }>;
+      };
+    }>,
+  ): UserAccessSnapshot {
     const roleNames = roles.map((r) => r.role.name);
     const permissions = [
       ...new Set(

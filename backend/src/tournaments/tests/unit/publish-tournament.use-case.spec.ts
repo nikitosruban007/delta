@@ -9,12 +9,19 @@ describe('PublishTournamentUseCase', () => {
         organizerId: 'u1',
         status: TournamentStatus.DRAFT,
       }),
-      updateTournament: jest.fn().mockResolvedValue({ id: 't1', status: TournamentStatus.REGISTRATION_OPEN }),
+      updateTournament: jest.fn().mockResolvedValue({
+        id: 't1',
+        status: TournamentStatus.REGISTRATION_OPEN,
+      }),
     };
     const cache = { set: jest.fn() };
     const notifier = { emitToTournament: jest.fn() };
 
-    const useCase = new PublishTournamentUseCase(repo as any, cache as any, notifier as any);
+    const useCase = new PublishTournamentUseCase(
+      repo as any,
+      cache as any,
+      notifier as any,
+    );
     const result = await useCase.execute('t1', 'u1');
 
     expect(result.status).toBe(TournamentStatus.REGISTRATION_OPEN);

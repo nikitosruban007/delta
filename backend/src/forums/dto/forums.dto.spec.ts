@@ -22,9 +22,15 @@ describe('Forum DTO validation', () => {
   };
 
   it('validates category payloads', async () => {
-    await expectValid(plainToInstance(CreateForumCategoryDto, { title: 'General' }));
-    await expectInvalid(plainToInstance(CreateForumCategoryDto, { title: 'x' }));
-    await expectValid(plainToInstance(UpdateForumCategoryDto, { title: 'News' }));
+    await expectValid(
+      plainToInstance(CreateForumCategoryDto, { title: 'General' }),
+    );
+    await expectInvalid(
+      plainToInstance(CreateForumCategoryDto, { title: 'x' }),
+    );
+    await expectValid(
+      plainToInstance(UpdateForumCategoryDto, { title: 'News' }),
+    );
     await expectInvalid(plainToInstance(UpdateForumCategoryDto, { title: '' }));
   });
 
@@ -50,13 +56,19 @@ describe('Forum DTO validation', () => {
         content: '',
       }),
     );
-    await expectInvalid(plainToInstance(UpdateForumTopicDto, { categoryId: 0 }));
+    await expectInvalid(
+      plainToInstance(UpdateForumTopicDto, { categoryId: 0 }),
+    );
   });
 
   it('validates post payloads', async () => {
-    await expectValid(plainToInstance(CreateForumPostDto, { content: 'Reply' }));
+    await expectValid(
+      plainToInstance(CreateForumPostDto, { content: 'Reply' }),
+    );
     await expectInvalid(plainToInstance(CreateForumPostDto, { content: '' }));
-    await expectValid(plainToInstance(UpdateForumPostDto, { content: 'Updated' }));
+    await expectValid(
+      plainToInstance(UpdateForumPostDto, { content: 'Updated' }),
+    );
     await expectInvalid(plainToInstance(UpdateForumPostDto, { content: '' }));
   });
 
@@ -79,7 +91,9 @@ describe('Forum DTO validation', () => {
     expect(postQuery.limit).toBe(5);
     await expectValid(topicQuery);
     await expectValid(postQuery);
-    await expectInvalid(plainToInstance(ListForumTopicsQueryDto, { limit: 101 }));
+    await expectInvalid(
+      plainToInstance(ListForumTopicsQueryDto, { limit: 101 }),
+    );
     await expectInvalid(plainToInstance(ListForumPostsQueryDto, { page: 0 }));
   });
 });

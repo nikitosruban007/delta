@@ -43,7 +43,12 @@ describe('TournamentsController - access control', () => {
   });
 
   it('throws ForbiddenException when non-admin/organizer tries to create', async () => {
-    const participantUser = { id: '1', email: 'user@test.com', roles: ['PARTICIPANT'], permissions: [] };
+    const participantUser = {
+      id: '1',
+      email: 'user@test.com',
+      roles: ['PARTICIPANT'],
+      permissions: [],
+    };
 
     await expect(
       controller.create(participantUser, { title: 'New Tournament' } as any),
@@ -51,15 +56,27 @@ describe('TournamentsController - access control', () => {
   });
 
   it('allows ADMIN to create tournament', async () => {
-    const adminUser = { id: '1', email: 'admin@test.com', roles: ['ADMIN'], permissions: [] };
+    const adminUser = {
+      id: '1',
+      email: 'admin@test.com',
+      roles: ['ADMIN'],
+      permissions: [],
+    };
     const mockTournament = new Tournament(
-      '1', 'Test', null, '1',
-      TournamentStatus.DRAFT, null, null, null,
-      new Date(), new Date(),
+      '1',
+      'Test',
+      null,
+      '1',
+      TournamentStatus.DRAFT,
+      null,
+      null,
+      null,
+      new Date(),
+      new Date(),
     );
     mockRegisterTournament.execute.mockResolvedValue(mockTournament);
 
-    const result = await controller.create(adminUser, { title: 'Test' } as any);
+    const result = await controller.create(adminUser, { title: 'Test' });
 
     expect(result).toBe(mockTournament);
     expect(mockRegisterTournament.execute).toHaveBeenCalledWith(
@@ -68,10 +85,15 @@ describe('TournamentsController - access control', () => {
   });
 
   it('allows ORGANIZER to create tournament', async () => {
-    const orgUser = { id: '2', email: 'org@test.com', roles: ['ORGANIZER'], permissions: [] };
+    const orgUser = {
+      id: '2',
+      email: 'org@test.com',
+      roles: ['ORGANIZER'],
+      permissions: [],
+    };
     mockRegisterTournament.execute.mockResolvedValue({ id: '1' });
 
-    await controller.create(orgUser, { title: 'Org Tournament' } as any);
+    await controller.create(orgUser, { title: 'Org Tournament' });
 
     expect(mockRegisterTournament.execute).toHaveBeenCalledWith(
       expect.objectContaining({ organizerId: '2' }),
@@ -86,7 +108,12 @@ describe('TournamentsController - access control', () => {
   });
 
   it('throws ForbiddenException when JUDGE tries to publish', async () => {
-    const judgeUser = { id: '3', email: 'judge@test.com', roles: ['JUDGE'], permissions: [] };
+    const judgeUser = {
+      id: '3',
+      email: 'judge@test.com',
+      roles: ['JUDGE'],
+      permissions: [],
+    };
 
     await expect(
       controller.publish(judgeUser, { tournamentId: '1' }),

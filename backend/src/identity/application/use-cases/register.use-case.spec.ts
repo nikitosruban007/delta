@@ -46,7 +46,11 @@ describe('RegisterUseCase', () => {
     users.findByEmail.mockResolvedValue(mockUser);
 
     await expect(
-      useCase.execute({ email: 'test@example.com', password: 'pass123', name: 'Test' }),
+      useCase.execute({
+        email: 'test@example.com',
+        password: 'pass123',
+        name: 'Test',
+      }),
     ).rejects.toThrow(EmailAlreadyExistsError);
   });
 
@@ -77,7 +81,11 @@ describe('RegisterUseCase', () => {
     hasher.hash.mockResolvedValue('hashed');
     tokenService.sign.mockReturnValue('token');
 
-    await useCase.execute({ email: 'a@b.com', password: 'mypassword', name: 'User' });
+    await useCase.execute({
+      email: 'a@b.com',
+      password: 'mypassword',
+      name: 'User',
+    });
 
     expect(hasher.hash).toHaveBeenCalledWith('mypassword');
   });

@@ -78,7 +78,9 @@ const permission = (code = 'users.read', id = 'permission-1') => ({
   description: null,
 });
 
-const role = (overrides: Partial<RoleWithPermissions> = {}): RoleWithPermissions => ({
+const role = (
+  overrides: Partial<RoleWithPermissions> = {},
+): RoleWithPermissions => ({
   id: 'role-1',
   name: 'Admin',
   description: null,
@@ -172,12 +174,16 @@ describe('identity full coverage', () => {
     });
 
     const occurredAt = new Date('2026-01-01T00:00:00.000Z');
-    expect(new UserRegisteredEvent('user-1', 'user@example.com', occurredAt)).toEqual({
+    expect(
+      new UserRegisteredEvent('user-1', 'user@example.com', occurredAt),
+    ).toEqual({
       userId: 'user-1',
       email: 'user@example.com',
       occurredAt,
     });
-    expect(new RoleAssignedEvent('user-1', 'role-1', 'admin-1', occurredAt)).toEqual({
+    expect(
+      new RoleAssignedEvent('user-1', 'role-1', 'admin-1', occurredAt),
+    ).toEqual({
       userId: 'user-1',
       roleId: 'role-1',
       assignedBy: 'admin-1',
@@ -198,7 +204,9 @@ describe('identity full coverage', () => {
 
       users.findByEmail.mockResolvedValue(null);
       passwordHasher.hash.mockResolvedValue('hash-1');
-      users.create.mockResolvedValue(user({ id: 'user-99', email: 'new@example.com' }));
+      users.create.mockResolvedValue(
+        user({ id: 'user-99', email: 'new@example.com' }),
+      );
       users.getWithAccessById.mockResolvedValue(
         user({
           id: 'user-99',
@@ -377,9 +385,9 @@ describe('identity full coverage', () => {
       });
 
       users.getWithAccessById.mockResolvedValue(null);
-      await expect(new GetMeUseCase(users).execute('missing')).rejects.toBeInstanceOf(
-        UserNotFoundError,
-      );
+      await expect(
+        new GetMeUseCase(users).execute('missing'),
+      ).rejects.toBeInstanceOf(UserNotFoundError);
     });
 
     it('AssignRoleUseCase and RevokeRoleUseCase should cover success and errors', async () => {
@@ -464,7 +472,11 @@ describe('identity full coverage', () => {
       permissions.findByCode
         .mockResolvedValueOnce(permission('users.read', 'p1'))
         .mockResolvedValueOnce(null);
-      roles.create.mockResolvedValue({ id: 'role-1', name: 'Admin', description: null });
+      roles.create.mockResolvedValue({
+        id: 'role-1',
+        name: 'Admin',
+        description: null,
+      });
       permissions.create.mockResolvedValue(permission('users.read', 'p1'));
       roles.list.mockResolvedValue([role()]);
       permissions.list.mockResolvedValue([permission('users.read', 'p1')]);
@@ -501,17 +513,21 @@ describe('identity full coverage', () => {
       ).rejects.toBeInstanceOf(PermissionNotFoundError);
 
       await expect(
-        new CreatePermissionUseCase(permissions).execute({ code: 'users.read' }),
+        new CreatePermissionUseCase(permissions).execute({
+          code: 'users.read',
+        }),
       ).resolves.toEqual(permission('users.read', 'p1'));
       expect(permissions.create).toHaveBeenCalledWith({
         code: 'users.read',
         description: null,
       });
 
-      await expect(new ListRolesUseCase(roles).execute()).resolves.toEqual([role()]);
-      await expect(new ListPermissionsUseCase(permissions).execute()).resolves.toEqual([
-        permission('users.read', 'p1'),
+      await expect(new ListRolesUseCase(roles).execute()).resolves.toEqual([
+        role(),
       ]);
+      await expect(
+        new ListPermissionsUseCase(permissions).execute(),
+      ).resolves.toEqual([permission('users.read', 'p1')]);
     });
   });
 
@@ -540,10 +556,16 @@ describe('identity full coverage', () => {
       domainRole.setDescription('Manages users');
       expect(domainRole.name).toBe('Manager');
       expect(domainRole.description).toBe('Manages users');
-      expect(() => new Role('role-1', ' ', null)).toThrow('Role name cannot be empty');
+      expect(() => new Role('role-1', ' ', null)).toThrow(
+        'Role name cannot be empty',
+      );
       expect(() => domainRole.rename(' ')).toThrow('Role name cannot be empty');
 
-      const domainPermission = new Permission('permission-1', ' users.read ', null);
+      const domainPermission = new Permission(
+        'permission-1',
+        ' users.read ',
+        null,
+      );
       domainPermission.rename(' users.write ');
       domainPermission.setDescription('Write users');
       expect(domainPermission.code).toBe('users.write');
@@ -559,7 +581,9 @@ describe('identity full coverage', () => {
     it('join entities and value objects should expose normalized values', () => {
       const assignedAt = new Date('2026-01-01T00:00:00.000Z');
 
-      expect(new UserRole('ur-1', 'user-1', 'role-1', null, assignedAt)).toMatchObject({
+      expect(
+        new UserRole('ur-1', 'user-1', 'role-1', null, assignedAt),
+      ).toMatchObject({
         id: 'ur-1',
         userId: 'user-1',
         roleId: 'role-1',
@@ -578,8 +602,12 @@ describe('identity full coverage', () => {
       expect(() => Email.create('bad-email')).toThrow('Invalid email');
       expect(PasswordHash.create(' hash ').toString()).toBe('hash');
       expect(RoleName.create(' Admin ').toString()).toBe('Admin');
-      expect(PermissionCode.create(' users.read ').toString()).toBe('users.read');
-      expect(() => PasswordHash.create(' ')).toThrow('Password hash cannot be empty');
+      expect(PermissionCode.create(' users.read ').toString()).toBe(
+        'users.read',
+      );
+      expect(() => PasswordHash.create(' ')).toThrow(
+        'Password hash cannot be empty',
+      );
       expect(() => RoleName.create(' ')).toThrow('Role name cannot be empty');
       expect(() => PermissionCode.create(' ')).toThrow(
         'Permission code cannot be empty',
@@ -640,14 +668,22 @@ describe('identity full coverage', () => {
 
     const prisma = () => ({
       users: { findUnique: jest.fn(), create: jest.fn() },
-      user_roles: { create: jest.fn(), findFirst: jest.fn(), delete: jest.fn() },
+      user_roles: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        delete: jest.fn(),
+      },
       roles: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         create: jest.fn(),
         delete: jest.fn(),
       },
-      permissions: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn() },
+      permissions: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+      },
     });
 
     it('PrismaUserRepository should query, map and mutate users', async () => {
@@ -663,7 +699,9 @@ describe('identity full coverage', () => {
         isActive: true,
         roles: [],
       });
-      await expect(repository.findByEmail('user@example.com')).resolves.toMatchObject({
+      await expect(
+        repository.findByEmail('user@example.com'),
+      ).resolves.toMatchObject({
         id: '1',
       });
       await expect(
@@ -673,7 +711,11 @@ describe('identity full coverage', () => {
           name: 'User',
         }),
       ).resolves.toMatchObject({ isActive: false });
-      await repository.assignRole({ userId: '1', roleId: '2', assignedBy: '3' });
+      await repository.assignRole({
+        userId: '1',
+        roleId: '2',
+        assignedBy: '3',
+      });
       await repository.revokeRole({ userId: '1', roleId: '2' });
 
       expect(db.users.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
@@ -686,7 +728,9 @@ describe('identity full coverage', () => {
       await repository.revokeRole({ userId: '1', roleId: '2' });
       expect(db.user_roles.delete).toHaveBeenCalledTimes(1);
 
-      await expect(repository.findById('bad')).rejects.toThrow('Invalid identity id: bad');
+      await expect(repository.findById('bad')).rejects.toThrow(
+        'Invalid identity id: bad',
+      );
     });
 
     it('PrismaUserRepository should map full access snapshots', async () => {
@@ -738,7 +782,11 @@ describe('identity full coverage', () => {
       const permissionRecord = { id: 3, code: 'users.read', description: null };
       db.roles.findUnique.mockResolvedValue(roleRecord);
       db.roles.findMany.mockResolvedValue([roleRecord]);
-      db.roles.create.mockResolvedValue({ id: 2, name: 'Admin', description: null });
+      db.roles.create.mockResolvedValue({
+        id: 2,
+        name: 'Admin',
+        description: null,
+      });
       db.permissions.findUnique.mockResolvedValue(permissionRecord);
       db.permissions.findMany.mockResolvedValue([permissionRecord]);
       db.permissions.create.mockResolvedValue(permissionRecord);
@@ -767,7 +815,11 @@ describe('identity full coverage', () => {
         },
       });
       expect(db.roles.create).toHaveBeenNthCalledWith(2, {
-        data: { name: 'Viewer', description: null, role_permissions: undefined },
+        data: {
+          name: 'Viewer',
+          description: null,
+          role_permissions: undefined,
+        },
       });
 
       const permissionRepository = new PrismaPermissionRepository(db as any);
@@ -776,7 +828,9 @@ describe('identity full coverage', () => {
         code: 'users.read',
         description: null,
       });
-      await expect(permissionRepository.findByCode('users.read')).resolves.toMatchObject({
+      await expect(
+        permissionRepository.findByCode('users.read'),
+      ).resolves.toMatchObject({
         id: '3',
       });
       await expect(permissionRepository.list()).resolves.toHaveLength(1);
@@ -810,9 +864,9 @@ describe('identity full coverage', () => {
         roles: ['Admin'],
         permissions: ['users.read'],
       };
-      expect(new JwtTokenService(jwt as unknown as NestJwtService).sign(payload)).toBe(
-        'signed-token',
-      );
+      expect(
+        new JwtTokenService(jwt as unknown as NestJwtService).sign(payload),
+      ).toBe('signed-token');
 
       process.env.JWT_SECRET = 'test-secret';
       await expect(new JwtStrategy().validate(payload)).resolves.toEqual({
@@ -848,7 +902,9 @@ describe('identity full coverage', () => {
         roles: ['Admin'],
         permissions: ['users.read'],
       });
-      expect(UserMapper.toProfile({ ...userWithRoles, roles: undefined })).toMatchObject({
+      expect(
+        UserMapper.toProfile({ ...userWithRoles, roles: undefined }),
+      ).toMatchObject({
         roles: [],
         permissions: [],
       });
@@ -867,7 +923,10 @@ describe('identity full coverage', () => {
           Reflector,
           RolesGuard,
           PermissionsGuard,
-          { provide: JwtAuthGuard, useValue: { canActivate: jest.fn(() => true) } },
+          {
+            provide: JwtAuthGuard,
+            useValue: { canActivate: jest.fn(() => true) },
+          },
         ],
       })
         .overrideGuard(JwtAuthGuard)
@@ -896,8 +955,12 @@ describe('identity full coverage', () => {
 
     it('controllers should route requests and validate DTOs', async () => {
       const auth = {
-        register: { execute: jest.fn().mockResolvedValue({ accessToken: 'token' }) },
-        login: { execute: jest.fn().mockResolvedValue({ accessToken: 'token' }) },
+        register: {
+          execute: jest.fn().mockResolvedValue({ accessToken: 'token' }),
+        },
+        login: {
+          execute: jest.fn().mockResolvedValue({ accessToken: 'token' }),
+        },
         me: { execute: jest.fn().mockResolvedValue({ id: 'user-1' }) },
       };
       const app = await appWith(
@@ -911,7 +974,11 @@ describe('identity full coverage', () => {
 
       await request(app.getHttpServer())
         .post('/auth/register')
-        .send({ email: 'user@example.com', password: 'password123', name: 'User' })
+        .send({
+          email: 'user@example.com',
+          password: 'password123',
+          name: 'User',
+        })
         .expect(201);
       await request(app.getHttpServer())
         .post('/auth/register')
@@ -930,8 +997,12 @@ describe('identity full coverage', () => {
       await app.close();
 
       const authErrors = {
-        register: { execute: jest.fn().mockRejectedValue(new EmailAlreadyExistsError()) },
-        login: { execute: jest.fn().mockRejectedValue(new InvalidCredentialsError()) },
+        register: {
+          execute: jest.fn().mockRejectedValue(new EmailAlreadyExistsError()),
+        },
+        login: {
+          execute: jest.fn().mockRejectedValue(new InvalidCredentialsError()),
+        },
         me: { execute: jest.fn().mockRejectedValue(new UserNotFoundError()) },
       };
       const authErrorApp = await appWith(
@@ -945,7 +1016,11 @@ describe('identity full coverage', () => {
 
       await request(authErrorApp.getHttpServer())
         .post('/auth/register')
-        .send({ email: 'user@example.com', password: 'password123', name: 'User' })
+        .send({
+          email: 'user@example.com',
+          password: 'password123',
+          name: 'User',
+        })
         .expect(409);
       await request(authErrorApp.getHttpServer())
         .post('/auth/login')
@@ -957,7 +1032,9 @@ describe('identity full coverage', () => {
       const roleUseCases = {
         createRole: { execute: jest.fn().mockResolvedValue({ id: 'role-1' }) },
         listRoles: { execute: jest.fn().mockResolvedValue([]) },
-        createPermission: { execute: jest.fn().mockResolvedValue({ id: 'p1' }) },
+        createPermission: {
+          execute: jest.fn().mockResolvedValue({ id: 'p1' }),
+        },
         listPermissions: { execute: jest.fn().mockResolvedValue([]) },
         assignRole: { execute: jest.fn().mockResolvedValue({ success: true }) },
         revokeRole: { execute: jest.fn().mockResolvedValue({ success: true }) },
@@ -1021,14 +1098,17 @@ describe('identity full coverage', () => {
           return true;
         }
       }
-      expect(Reflect.getMetadata(ROLES_KEY, Controller.prototype.handler)).toEqual([
-        'Admin',
-      ]);
-      expect(Reflect.getMetadata(PERMISSIONS_KEY, Controller.prototype.handler)).toEqual(
-        ['users.read'],
-      );
+      expect(
+        Reflect.getMetadata(ROLES_KEY, Controller.prototype.handler),
+      ).toEqual(['Admin']);
+      expect(
+        Reflect.getMetadata(PERMISSIONS_KEY, Controller.prototype.handler),
+      ).toEqual(['users.read']);
 
-      const context = (currentUser?: { roles?: string[]; permissions?: string[] }) =>
+      const context = (currentUser?: {
+        roles?: string[];
+        permissions?: string[];
+      }) =>
         ({
           getHandler: jest.fn(),
           getClass: jest.fn(),
@@ -1058,14 +1138,18 @@ describe('identity full coverage', () => {
       ).toBe(true);
       expect(
         new PermissionsGuard({
-          getAllAndOverride: jest.fn().mockReturnValue(['users.read', 'users.write']),
+          getAllAndOverride: jest
+            .fn()
+            .mockReturnValue(['users.read', 'users.write']),
         } as unknown as Reflector).canActivate(
           context({ permissions: ['users.read', 'users.write'] }),
         ),
       ).toBe(true);
       expect(
         new PermissionsGuard({
-          getAllAndOverride: jest.fn().mockReturnValue(['users.read', 'users.write']),
+          getAllAndOverride: jest
+            .fn()
+            .mockReturnValue(['users.read', 'users.write']),
         } as unknown as Reflector).canActivate(
           context({ permissions: ['users.read'] }),
         ),
@@ -1093,12 +1177,18 @@ describe('identity full coverage', () => {
         return item;
       }
 
-      createRole(name: string, description: string | null = null, permissionIds: string[] = []) {
+      createRole(
+        name: string,
+        description: string | null = null,
+        permissionIds: string[] = [],
+      ) {
         const item: RoleWithPermissions = {
           id: String(this.roleSeq++),
           name,
           description,
-          permissions: permissionIds.map((id) => ({ permission: this.permissions.get(id)! })),
+          permissions: permissionIds.map((id) => ({
+            permission: this.permissions.get(id)!,
+          })),
         };
         this.roles.set(item.id, item);
         return item;
@@ -1122,7 +1212,9 @@ describe('identity full coverage', () => {
           return item ? store.withAccess(item) : null;
         },
         async findByEmail(email: string) {
-          const item = [...store.users.values()].find((user) => user.email === email);
+          const item = [...store.users.values()].find(
+            (user) => user.email === email,
+          );
           return item ? store.withAccess(item) : null;
         },
         async create(input: {
@@ -1159,7 +1251,9 @@ describe('identity full coverage', () => {
           return store.roles.get(id) ?? null;
         },
         async findByName(name: string) {
-          return [...store.roles.values()].find((role) => role.name === name) ?? null;
+          return (
+            [...store.roles.values()].find((role) => role.name === name) ?? null
+          );
         },
         async list() {
           return [...store.roles.values()];
@@ -1174,7 +1268,11 @@ describe('identity full coverage', () => {
             input.description ?? null,
             input.permissionIds ?? [],
           );
-          return { id: item.id, name: item.name, description: item.description };
+          return {
+            id: item.id,
+            name: item.name,
+            description: item.description,
+          };
         },
         async delete(id: string) {
           store.roles.delete(id);
@@ -1186,7 +1284,9 @@ describe('identity full coverage', () => {
         },
         async findByCode(code: string) {
           return (
-            [...store.permissions.values()].find((item) => item.code === code) ?? null
+            [...store.permissions.values()].find(
+              (item) => item.code === code,
+            ) ?? null
           );
         },
         async list() {
@@ -1205,7 +1305,9 @@ describe('identity full coverage', () => {
       process.env.JWT_SECRET = 'identity-e2e-secret';
       store = new Store();
       const repositories = repos(store);
-      const moduleRef = await Test.createTestingModule({ imports: [IdentityModule] })
+      const moduleRef = await Test.createTestingModule({
+        imports: [IdentityModule],
+      })
         .overrideProvider(PrismaService)
         .useValue({ $connect: jest.fn(), $disconnect: jest.fn() })
         .overrideProvider(IDENTITY_TOKENS.USER_REPOSITORY)
@@ -1218,7 +1320,8 @@ describe('identity full coverage', () => {
         .useValue({
           hash: jest.fn(async (password: string) => `hashed:${password}`),
           compare: jest.fn(
-            async (password: string, hash: string) => hash === `hashed:${password}`,
+            async (password: string, hash: string) =>
+              hash === `hashed:${password}`,
           ),
         })
         .overrideProvider(IDENTITY_TOKENS.TOKEN_SERVICE)
@@ -1271,7 +1374,10 @@ describe('identity full coverage', () => {
 
     it('should cover auth endpoints, admin endpoints and authorization failures', async () => {
       const registered = await register();
-      expect(registered.user).toMatchObject({ id: '1', email: 'user@example.com' });
+      expect(registered.user).toMatchObject({
+        id: '1',
+        email: 'user@example.com',
+      });
       expect(registered.accessToken).toEqual(expect.any(String));
 
       await request(app.getHttpServer())
@@ -1316,7 +1422,9 @@ describe('identity full coverage', () => {
         .delete(`/users/${target.user.id}/roles/${adminRole.id}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
-      expect(store.userRoles.get(target.user.id)?.has(adminRole.id)).toBe(false);
+      expect(store.userRoles.get(target.user.id)?.has(adminRole.id)).toBe(
+        false,
+      );
 
       await request(app.getHttpServer())
         .post('/permissions')

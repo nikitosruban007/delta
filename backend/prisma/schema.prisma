@@ -64,10 +64,46 @@ model forum_posts {
   id           Int           @id @default(autoincrement())
   topic_id     Int?
   author_id    Int?
+  parent_id    Int?
   content      String?
+  is_deleted   Boolean       @default(false)
   created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?     @default(now()) @db.Timestamptz(6)
   users        users?        @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   forum_topics forum_topics? @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  parent       forum_posts?  @relation("forum_posts_parent", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  children     forum_posts[] @relation("forum_posts_parent")
+  forum_post_votes  forum_post_votes[]
+  forum_reports     forum_reports[]
+}
+
+model forum_post_votes {
+  id           Int          @id @default(autoincrement())
+  post_id      Int
+  user_id      Int
+  value        Int          // +1 or -1
+  created_at   DateTime?    @default(now()) @db.Timestamptz(6)
+  forum_posts  forum_posts  @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id], map: "uq_forum_post_votes")
+  @@index([post_id], map: "idx_forum_post_votes_post")
+}
+
+model forum_reports {
+  id             Int          @id @default(autoincrement())
+  post_id        Int?
+  topic_id       Int?
+  reporter_id    Int
+  reason         String
+  status         String       @default("open")
+  created_at     DateTime?    @default(now()) @db.Timestamptz(6)
+  resolved_at    DateTime?
+  forum_posts    forum_posts? @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  forum_topics   forum_topics? @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users          users        @relation(fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_forum_reports_status")
 }
 
 model forum_topics {
@@ -78,6 +114,7 @@ model forum_topics {
   created_at       DateTime?         @default(now()) @db.Timestamptz(6)
   tags             String[]          @default([])
   forum_posts      forum_posts[]
+  forum_reports    forum_reports[]
   users            users?            @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   forum_categories forum_categories? @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
@@ -138,6 +175,7 @@ model rounds {
   submissions   submissions[]
   judge_assignments judge_assignments[]
   evaluation_criteria evaluation_criteria[]
+  tournament_events tournament_events[]
 }
 
 model submissions {
@@ -227,7 +265,27 @@ model tournaments {
   consultations         Consultation[]
   announcements         announcements[]
   judge_assignments     judge_assignments[]
+  tournament_events     tournament_events[]
   users                 users?                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model tournament_events {
+  id            Int          @id @default(autoincrement())
+  tournament_id Int
+  round_id      Int?
+  title         String
+  description   String?
+  starts_at     DateTime     @db.Timestamptz(6)
+  ends_at       DateTime?    @db.Timestamptz(6)
+  location      String?
+  created_by    Int?
+  created_at    DateTime?    @default(now()) @db.Timestamptz(6)
+  tournaments   tournaments  @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rounds        rounds?      @relation(fields: [round_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  users         users?       @relation(fields: [created_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tournament_id], map: "idx_tournament_events_tournament")
+  @@index([starts_at], map: "idx_tournament_events_starts_at")
 }
 
 model announcements {
@@ -288,6 +346,8 @@ model users {
   evaluations                          evaluations[]
   forum_posts                          forum_posts[]
   forum_topics                         forum_topics[]
+  forum_post_votes                     forum_post_votes[]
+  forum_reports                        forum_reports[]
   notifications                        notifications[]
   results                              results[]
   team_members                         team_members[]
@@ -295,6 +355,7 @@ model users {
   tournaments                          tournaments[]
   announcements                        announcements[]
   judge_assignments                    judge_assignments[]
+  tournament_events                    tournament_events[]
   user_roles_user_roles_user_idTousers user_roles[]    @relation("user_roles_user_idTousers")
 
   @@index([email], map: "idx_users_email")

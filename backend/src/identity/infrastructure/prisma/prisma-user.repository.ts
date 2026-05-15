@@ -163,7 +163,9 @@ export class PrismaUserRepository implements IUserRepository {
     };
   }
 
-  private toUserAccessWithRoles(user: NonNullable<PrismaUserWithAccess>): UserAccess {
+  private toUserAccessWithRoles(
+    user: NonNullable<PrismaUserWithAccess>,
+  ): UserAccess {
     return {
       id: String(user.id),
       email: user.email,
@@ -180,13 +182,15 @@ export class PrismaUserRepository implements IUserRepository {
             id: String(userRole.roles!.id),
             name: userRole.roles!.name,
             description: userRole.roles!.description,
-            permissions: userRole.roles!.role_permissions.map((rolePermission) => ({
-              permission: {
-                id: String(rolePermission.permissions.id),
-                code: rolePermission.permissions.code,
-                description: rolePermission.permissions.description,
-              },
-            })),
+            permissions: userRole.roles!.role_permissions.map(
+              (rolePermission) => ({
+                permission: {
+                  id: String(rolePermission.permissions.id),
+                  code: rolePermission.permissions.code,
+                  description: rolePermission.permissions.description,
+                },
+              }),
+            ),
           },
         })),
     };

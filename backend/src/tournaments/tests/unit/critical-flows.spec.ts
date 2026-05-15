@@ -15,15 +15,33 @@ import { Tournament } from '../../domain/entities/tournament.entity';
 function makePrisma(overrides: any = {}) {
   return {
     tournaments: { findUnique: jest.fn(), updateMany: jest.fn() },
-    tournament_teams: { findFirst: jest.fn(), create: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    tournament_teams: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     teams: { create: jest.fn() },
-    team_members: { create: jest.fn(), upsert: jest.fn(), findFirst: jest.fn() },
+    team_members: {
+      create: jest.fn(),
+      upsert: jest.fn(),
+      findFirst: jest.fn(),
+    },
     team_invites: { create: jest.fn() },
     users: { findUnique: jest.fn() },
     rounds: { findUnique: jest.fn() },
-    submissions: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn(), findUnique: jest.fn() },
+    submissions: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
+      findUnique: jest.fn(),
+    },
     judge_assignments: { findFirst: jest.fn(), create: jest.fn() },
-    evaluations: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    evaluations: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     evaluation_scores: { deleteMany: jest.fn(), createMany: jest.fn() },
     evaluation_criteria: { findMany: jest.fn() },
     leaderboard_entries: { deleteMany: jest.fn(), createMany: jest.fn() },
@@ -33,7 +51,11 @@ function makePrisma(overrides: any = {}) {
 }
 
 const notifier = { emitToTournament: jest.fn(), emitToUser: jest.fn() } as any;
-const leaderboardCache = { del: jest.fn(), get: jest.fn(), set: jest.fn() } as any;
+const leaderboardCache = {
+  del: jest.fn(),
+  get: jest.fn(),
+  set: jest.fn(),
+} as any;
 
 describe('Critical flows', () => {
   describe('RegisterTeamUseCase', () => {
@@ -203,7 +225,7 @@ describe('Critical flows', () => {
         deadline_at: new Date(Date.now() - 1000),
         tournaments: { status: 'active' },
       });
-      const useCase = new SubmitWorkUseCase(prisma as any, notifier);
+      const useCase = new SubmitWorkUseCase(prisma, notifier);
       await expect(
         useCase.execute({
           stageId: '1',
@@ -226,11 +248,19 @@ describe('Critical flows', () => {
       prisma.tournament_teams.findFirst.mockResolvedValue({ id: 1 });
       prisma.submissions.findFirst.mockResolvedValue({ id: 7 });
       prisma.submissions.update.mockResolvedValue({
-        id: 7, team_id: 1, round_id: 1, github_url: 'g', video_url: null, live_demo_url: null,
-        description: null, status: 'submitted', created_at: new Date(), updated_at: new Date(),
+        id: 7,
+        team_id: 1,
+        round_id: 1,
+        github_url: 'g',
+        video_url: null,
+        live_demo_url: null,
+        description: null,
+        status: 'submitted',
+        created_at: new Date(),
+        updated_at: new Date(),
       });
 
-      const useCase = new SubmitWorkUseCase(prisma as any, notifier);
+      const useCase = new SubmitWorkUseCase(prisma, notifier);
       const r = await useCase.execute({
         stageId: '1',
         teamId: '1',
@@ -248,8 +278,11 @@ describe('Critical flows', () => {
   describe('AssignJudgeUseCase', () => {
     it('rejects non-owner organizer', async () => {
       const prisma = makePrisma();
-      prisma.tournaments.findUnique.mockResolvedValue({ id: 1, created_by: 99 });
-      const useCase = new AssignJudgeUseCase(prisma as any, notifier);
+      prisma.tournaments.findUnique.mockResolvedValue({
+        id: 1,
+        created_by: 99,
+      });
+      const useCase = new AssignJudgeUseCase(prisma, notifier);
       await expect(
         useCase.execute({
           tournamentId: '1',
@@ -266,10 +299,17 @@ describe('Critical flows', () => {
     it('rejects unassigned judge', async () => {
       const prisma = makePrisma();
       prisma.submissions.findUnique.mockResolvedValue({
-        id: 1, round_id: 1, rounds: { tournament_id: 10 }, teams: { id: 2 },
+        id: 1,
+        round_id: 1,
+        rounds: { tournament_id: 10 },
+        teams: { id: 2 },
       });
       prisma.judge_assignments.findFirst.mockResolvedValue(null);
-      const useCase = new ScoreSubmissionUseCase(prisma as any, notifier, leaderboardCache);
+      const useCase = new ScoreSubmissionUseCase(
+        prisma,
+        notifier,
+        leaderboardCache,
+      );
       await expect(
         useCase.execute({ submissionId: '1', judgeId: '5', score: 50 }),
       ).rejects.toBeInstanceOf(ForbiddenException);
@@ -279,7 +319,10 @@ describe('Critical flows', () => {
       const prisma = makePrisma();
       prisma.$transaction = async (fn: any) => fn(prisma);
       prisma.submissions.findUnique.mockResolvedValue({
-        id: 1, round_id: 1, rounds: { tournament_id: 10 }, teams: { id: 2 },
+        id: 1,
+        round_id: 1,
+        rounds: { tournament_id: 10 },
+        teams: { id: 2 },
       });
       prisma.judge_assignments.findFirst.mockResolvedValue({ id: 1 });
       prisma.evaluations.findFirst.mockResolvedValue(null);
@@ -288,8 +331,16 @@ describe('Critical flows', () => {
       prisma.evaluations.findMany.mockResolvedValue([
         { total_score: 75, submissions: { team_id: 2 } },
       ]);
-      const useCase = new ScoreSubmissionUseCase(prisma as any, notifier, leaderboardCache);
-      const r = await useCase.execute({ submissionId: '1', judgeId: '5', score: 75 });
+      const useCase = new ScoreSubmissionUseCase(
+        prisma,
+        notifier,
+        leaderboardCache,
+      );
+      const r = await useCase.execute({
+        submissionId: '1',
+        judgeId: '5',
+        score: 75,
+      });
       expect(r.totalScore).toBe(75);
       expect(prisma.leaderboard_entries.deleteMany).toHaveBeenCalledWith({
         where: { tournament_id: 10 },
@@ -302,12 +353,22 @@ describe('Critical flows', () => {
   describe('CreateStageUseCase ownership', () => {
     it('rejects when organizer does not own tournament', async () => {
       const repo: any = {
-        findTournamentById: jest.fn().mockResolvedValue(
-          new Tournament(
-            '1', 'T', null, 'OWNER',
-            TournamentStatus.DRAFT, null, null, null, new Date(), new Date(),
+        findTournamentById: jest
+          .fn()
+          .mockResolvedValue(
+            new Tournament(
+              '1',
+              'T',
+              null,
+              'OWNER',
+              TournamentStatus.DRAFT,
+              null,
+              null,
+              null,
+              new Date(),
+              new Date(),
+            ),
           ),
-        ),
         createStage: jest.fn(),
       };
       const useCase = new CreateStageUseCase(repo, notifier);
@@ -323,7 +384,10 @@ describe('Critical flows', () => {
     });
 
     it('rejects when tournament missing', async () => {
-      const repo: any = { findTournamentById: jest.fn().mockResolvedValue(null), createStage: jest.fn() };
+      const repo: any = {
+        findTournamentById: jest.fn().mockResolvedValue(null),
+        createStage: jest.fn(),
+      };
       const useCase = new CreateStageUseCase(repo, notifier);
       await expect(
         useCase.execute({

@@ -46,7 +46,9 @@ describe('PrismaService', () => {
       const error = new Error('Disconnection failed');
       (service.$disconnect as jest.Mock).mockRejectedValue(error);
 
-      await expect(service.onModuleDestroy()).rejects.toThrow('Disconnection failed');
+      await expect(service.onModuleDestroy()).rejects.toThrow(
+        'Disconnection failed',
+      );
       expect(service.$disconnect).toHaveBeenCalled();
     });
   });

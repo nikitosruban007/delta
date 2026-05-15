@@ -1,5 +1,11 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { JoinConsultationDto } from './dto/join-consultation.dto';
 import { LeaveConsultationDto } from './dto/leave-consultation.dto';
@@ -11,7 +17,12 @@ import { ConsultationsLogger } from './utils/logger';
 import { JwtAuthGuard } from '../identity/presentation/guards/jwt-auth.guard';
 import { CurrentUser } from '../identity/presentation/decorators/current-user.decorator';
 
-type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
+type AuthUser = {
+  id: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+};
 
 @ApiTags('consultations')
 @ApiBearerAuth()
@@ -27,7 +38,10 @@ export class ConsultationsController {
   @ApiOperation({ summary: 'Create consultation' })
   @ApiBody({ type: CreateConsultationDto })
   @ApiResponse({ status: 201, description: 'Consultation created' })
-  async create(@Body() dto: CreateConsultationDto, @CurrentUser() user: AuthUser) {
+  async create(
+    @Body() dto: CreateConsultationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.createConsultation(dto, user.id);
   }
 
@@ -46,7 +60,10 @@ export class ConsultationsController {
   @Post('start')
   @ApiOperation({ summary: 'Start consultation (host only)' })
   @ApiBody({ type: StartConsultationDto })
-  async start(@Body() dto: StartConsultationDto, @CurrentUser() user: AuthUser) {
+  async start(
+    @Body() dto: StartConsultationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.startConsultation(dto.consultationId, user.id);
   }
 
@@ -60,7 +77,10 @@ export class ConsultationsController {
   @Post('leave')
   @ApiOperation({ summary: 'Leave consultation' })
   @ApiBody({ type: LeaveConsultationDto })
-  async leave(@Body() dto: LeaveConsultationDto, @CurrentUser() user: AuthUser) {
+  async leave(
+    @Body() dto: LeaveConsultationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
     return this.service.leaveConsultation(dto.consultationId, user.id);
   }
 

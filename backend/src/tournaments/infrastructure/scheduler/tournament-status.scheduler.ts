@@ -1,10 +1,17 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 const TICK_MS = 60_000; // every minute
 
 @Injectable()
-export class TournamentStatusScheduler implements OnModuleInit, OnModuleDestroy {
+export class TournamentStatusScheduler
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(TournamentStatusScheduler.name);
   private handle: NodeJS.Timeout | null = null;
   private running = false;

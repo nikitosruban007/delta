@@ -193,7 +193,11 @@ export class ForumsService {
     return this.getTopic(String(topic.id));
   }
 
-  async updateTopic(id: string, dto: UpdateForumTopicDto, currentUser: ForumUser) {
+  async updateTopic(
+    id: string,
+    dto: UpdateForumTopicDto,
+    currentUser: ForumUser,
+  ) {
     const topicId = this.parseId(id, 'topicId');
     const topic = await this.findTopicById(topicId);
 
@@ -244,12 +248,17 @@ export class ForumsService {
     return { id: topicId, deleted: true };
   }
 
-  async listPosts(topicId: string, query: ListForumPostsQueryDto) {
+  async listPosts(
+    topicId: string,
+    query: ListForumPostsQueryDto,
+    currentUser?: ForumUser,
+  ) {
     const parsedTopicId = this.parseId(topicId, 'topicId');
     await this.ensureTopicExists(parsedTopicId);
 
     const { page, limit } = this.resolvePagination(query);
     const where = { topic_id: parsedTopicId };
+    const myId = currentUser ? Number(currentUser.id) : null;
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.forum_posts.findMany({
@@ -258,52 +267,227 @@ export class ForumsService {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              avatar_url: true,
-            },
-          },
+          users: { select: { id: true, name: true, avatar_url: true } },
+          forum_post_votes: { select: { value: true, user_id: true } },
+          _count: { select: { children: true } },
         },
       }),
       this.prisma.forum_posts.count({ where }),
     ]);
 
     return {
-      items: items.map((post) => this.mapPost(post)),
+      items: items.map((post: any) => {
+        const myVote = myId
+          ? (post.forum_post_votes.find((v: any) => v.user_id === myId)
+              ?.value ?? null)
+          : null;
+        return this.mapPost({
+          ...post,
+          _myVote: myVote,
+          _childrenCount: post._count?.children ?? 0,
+        });
+      }),
       pagination: this.mapPagination(page, limit, total),
     };
   }
 
-  async createPost(topicId: string, dto: CreateForumPostDto, currentUser: ForumUser) {
+  async createPost(
+    topicId: string,
+    dto: CreateForumPostDto,
+    currentUser: ForumUser,
+  ) {
     const parsedTopicId = this.parseId(topicId, 'topicId');
     const authorId = this.parseId(currentUser.id, 'userId');
 
     await this.ensureTopicExists(parsedTopicId);
     await this.ensureUserExists(authorId);
 
+    let parentId: number | null = null;
+    if ((dto as any).parentId !== undefined && (dto as any).parentId !== null) {
+      parentId = this.parseId((dto as any).parentId, 'parentId');
+      const parent = await this.prisma.forum_posts.findUnique({
+        where: { id: parentId },
+      });
+      if (!parent || parent.topic_id !== parsedTopicId) {
+        throw new BadRequestException(
+          'Parent post does not belong to this topic',
+        );
+      }
+    }
+
     const post = await this.prisma.forum_posts.create({
       data: {
         topic_id: parsedTopicId,
         author_id: authorId,
+        parent_id: parentId,
         content: dto.content.trim(),
       },
       include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            avatar_url: true,
-          },
-        },
+        users: { select: { id: true, name: true, avatar_url: true } },
+        forum_post_votes: { select: { value: true, user_id: true } },
+        _count: { select: { children: true } },
       },
     });
 
-    return this.mapPost(post);
+    return this.mapPost({
+      ...post,
+      _myVote: null,
+      _childrenCount: post._count?.children ?? 0,
+    });
   }
 
-  async updatePost(id: string, dto: UpdateForumPostDto, currentUser: ForumUser) {
+  async votePost(postId: string, value: 1 | -1 | 0, currentUser: ForumUser) {
+    const pid = this.parseId(postId, 'postId');
+    const uid = this.parseId(currentUser.id, 'userId');
+
+    const post = await this.prisma.forum_posts.findUnique({
+      where: { id: pid },
+    });
+    if (!post) throw new NotFoundException('Forum post not found');
+    if (post.is_deleted)
+      throw new BadRequestException('Cannot vote on a deleted post');
+    if (post.author_id === uid) {
+      throw new BadRequestException('You cannot vote on your own post');
+    }
+
+    if (value === 0) {
+      await this.prisma.forum_post_votes
+        .delete({ where: { post_id_user_id: { post_id: pid, user_id: uid } } })
+        .catch(() => undefined);
+    } else {
+      await this.prisma.forum_post_votes.upsert({
+        where: { post_id_user_id: { post_id: pid, user_id: uid } },
+        create: { post_id: pid, user_id: uid, value },
+        update: { value },
+      });
+    }
+
+    const votes = await this.prisma.forum_post_votes.findMany({
+      where: { post_id: pid },
+      select: { value: true, user_id: true },
+    });
+    const upvotes = votes.filter((v) => v.value === 1).length;
+    const downvotes = votes.filter((v) => v.value === -1).length;
+    const myVote = votes.find((v) => v.user_id === uid)?.value ?? null;
+    return {
+      postId: pid,
+      upvotes,
+      downvotes,
+      score: upvotes - downvotes,
+      myVote,
+    };
+  }
+
+  async reportPost(postId: string, reason: string, currentUser: ForumUser) {
+    const pid = this.parseId(postId, 'postId');
+    const uid = this.parseId(currentUser.id, 'userId');
+    const post = await this.prisma.forum_posts.findUnique({
+      where: { id: pid },
+    });
+    if (!post) throw new NotFoundException('Forum post not found');
+    if (post.author_id === uid) {
+      throw new BadRequestException('You cannot report your own post');
+    }
+    const trimmed = reason.trim();
+    if (trimmed.length < 3) {
+      throw new BadRequestException('Reason is required (min 3 characters)');
+    }
+    const existing = await this.prisma.forum_reports.findFirst({
+      where: { post_id: pid, reporter_id: uid, status: 'open' },
+    });
+    if (existing) return { id: existing.id, status: existing.status };
+    const row = await this.prisma.forum_reports.create({
+      data: { post_id: pid, reporter_id: uid, reason: trimmed, status: 'open' },
+    });
+    return { id: row.id, status: row.status };
+  }
+
+  async reportTopic(topicId: string, reason: string, currentUser: ForumUser) {
+    const tid = this.parseId(topicId, 'topicId');
+    const uid = this.parseId(currentUser.id, 'userId');
+    await this.ensureTopicExists(tid);
+    const trimmed = reason.trim();
+    if (trimmed.length < 3) {
+      throw new BadRequestException('Reason is required (min 3 characters)');
+    }
+    const existing = await this.prisma.forum_reports.findFirst({
+      where: { topic_id: tid, reporter_id: uid, status: 'open' },
+    });
+    if (existing) return { id: existing.id, status: existing.status };
+    const row = await this.prisma.forum_reports.create({
+      data: {
+        topic_id: tid,
+        reporter_id: uid,
+        reason: trimmed,
+        status: 'open',
+      },
+    });
+    return { id: row.id, status: row.status };
+  }
+
+  async listReports(
+    currentUser: ForumUser,
+    status: 'open' | 'resolved' | 'all' = 'open',
+  ) {
+    if (!currentUser.roles?.includes('ADMIN')) {
+      throw new ForbiddenException('Only admins can view reports');
+    }
+    const where = status === 'all' ? {} : { status };
+    const rows = await this.prisma.forum_reports.findMany({
+      where,
+      orderBy: { id: 'desc' },
+      take: 200,
+      include: {
+        users: { select: { id: true, name: true, email: true } },
+        forum_posts: {
+          select: { id: true, content: true, topic_id: true, is_deleted: true },
+        },
+        forum_topics: { select: { id: true, title: true } },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      reason: r.reason,
+      createdAt: r.created_at,
+      resolvedAt: r.resolved_at,
+      reporter: r.users
+        ? { id: r.users.id, name: r.users.name, email: r.users.email }
+        : null,
+      post: r.forum_posts
+        ? {
+            id: r.forum_posts.id,
+            topicId: r.forum_posts.topic_id,
+            content: r.forum_posts.is_deleted ? null : r.forum_posts.content,
+          }
+        : null,
+      topic: r.forum_topics
+        ? { id: r.forum_topics.id, title: r.forum_topics.title }
+        : null,
+    }));
+  }
+
+  async resolveReport(reportId: string, currentUser: ForumUser) {
+    if (!currentUser.roles?.includes('ADMIN')) {
+      throw new ForbiddenException('Only admins can resolve reports');
+    }
+    const rid = this.parseId(reportId, 'reportId');
+    const row = await this.prisma.forum_reports.findUnique({
+      where: { id: rid },
+    });
+    if (!row) throw new NotFoundException('Report not found');
+    const updated = await this.prisma.forum_reports.update({
+      where: { id: rid },
+      data: { status: 'resolved', resolved_at: new Date() },
+    });
+    return { id: updated.id, status: updated.status };
+  }
+
+  async updatePost(
+    id: string,
+    dto: UpdateForumPostDto,
+    currentUser: ForumUser,
+  ) {
     const postId = this.parseId(id, 'postId');
     const post = await this.prisma.forum_posts.findUnique({
       where: { id: postId },
@@ -336,6 +520,7 @@ export class ForumsService {
     const postId = this.parseId(id, 'postId');
     const post = await this.prisma.forum_posts.findUnique({
       where: { id: postId },
+      include: { _count: { select: { children: true } } },
     });
 
     if (!post) {
@@ -344,11 +529,21 @@ export class ForumsService {
 
     this.assertCanModify(post.author_id, currentUser);
 
-    await this.prisma.forum_posts.delete({
-      where: { id: postId },
-    });
+    if ((post._count?.children ?? 0) > 0) {
+      // Soft-delete so child replies remain readable in context.
+      await this.prisma.forum_posts.update({
+        where: { id: postId },
+        data: {
+          is_deleted: true,
+          content: '[deleted]',
+          updated_at: new Date(),
+        },
+      });
+      return { id: postId, deleted: true, softDelete: true };
+    }
 
-    return { id: postId, deleted: true };
+    await this.prisma.forum_posts.delete({ where: { id: postId } });
+    return { id: postId, deleted: true, softDelete: false };
   }
 
   private async findTopicById(id: number) {
@@ -397,12 +592,26 @@ export class ForumsService {
   }
 
   private mapPost(post: any) {
+    const upvotes = Array.isArray(post.forum_post_votes)
+      ? post.forum_post_votes.filter((v: any) => v.value === 1).length
+      : (post._upvotes ?? 0);
+    const downvotes = Array.isArray(post.forum_post_votes)
+      ? post.forum_post_votes.filter((v: any) => v.value === -1).length
+      : (post._downvotes ?? 0);
     return {
       id: post.id,
       topicId: post.topic_id,
-      content: post.content,
+      parentId: post.parent_id ?? null,
+      content: post.is_deleted ? null : post.content,
+      isDeleted: Boolean(post.is_deleted),
       createdAt: post.created_at,
+      updatedAt: post.updated_at ?? post.created_at,
       author: this.mapAuthor(post.users),
+      score: upvotes - downvotes,
+      upvotes,
+      downvotes,
+      myVote: typeof post._myVote === 'number' ? post._myVote : null,
+      childrenCount: post._childrenCount ?? 0,
     };
   }
 

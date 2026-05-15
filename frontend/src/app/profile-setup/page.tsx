@@ -41,7 +41,7 @@ const labelClass = "block text-[13px] font-semibold text-[#111] mb-2";
 
 export default function ProfileSetupPage() {
     const router = useRouter();
-    const { token, user } = useAuth();
+    const { token, user, refresh } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const docInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,6 +58,7 @@ export default function ProfileSetupPage() {
     const [youtube, setYoutube] = useState("");
     const [github, setGithub] = useState("");
     const [company, setCompany] = useState("");
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
 
@@ -93,8 +94,19 @@ export default function ProfileSetupPage() {
         };
     }, [token]);
 
+    const uploadAvatarMutation = useMutation({
+        mutationFn: async (file: File) => {
+            return authApi.uploadAvatar(file, token!);
+        },
+    });
+
     const updateMutation = useMutation({
-        mutationFn: () => {
+        mutationFn: async () => {
+            // Upload avatar first if selected
+            if (avatarFile) {
+                await uploadAvatarMutation.mutateAsync(avatarFile);
+            }
+
             const fullName = `${firstName.trim()} ${lastName.trim()}`.trim() || user?.name;
             const socialLinks: Record<string, string> = {};
             if (instagram.trim()) socialLinks.instagram = instagram.trim();
@@ -115,15 +127,43 @@ export default function ProfileSetupPage() {
                 token!,
             );
         },
-        onSuccess: () => {
+        onSuccess: async () => {
+            await refresh();
             setSaved(true);
-            setTimeout(() => router.push("/dashboard"), 800);
         },
     });
+
+    // Defer navigation until router is initialized to avoid "Router action dispatched before initialization"
+    useEffect(() => {
+        if (!saved) return;
+        const t = setTimeout(() => {
+            try {
+                router.push('/dashboard');
+            } catch (e) {
+                // swallow navigation errors during HMR or router re-init
+                // navigation will still work on next interaction
+            }
+        }, 800);
+        return () => clearTimeout(t);
+    }, [saved, router]);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        // Validate file type
+        if (!file.type.match(/image\/(jpeg|jpg|png)/)) {
+            alert('Будь ласка, виберіть файл JPG або PNG');
+            return;
+        }
+
+        // Validate file size (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Файл занадто великий. Максимальний розмір - 2 МБ');
+            return;
+        }
+
+        setAvatarFile(file);
         const url = URL.createObjectURL(file);
         setAvatarPreview(url);
     };

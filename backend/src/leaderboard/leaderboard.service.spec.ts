@@ -104,7 +104,9 @@ describe('LeaderboardService', () => {
   });
 
   it('invalidates leaderboard cache', async () => {
-    const { service, prisma } = createService([result(1, 10, 1, 100, '2026-05-03T10:00:00.000Z')]);
+    const { service, prisma } = createService([
+      result(1, 10, 1, 100, '2026-05-03T10:00:00.000Z'),
+    ]);
 
     await service.getLeaderboard('1', { page: 1, limit: 20 });
     await service.invalidate(1);
@@ -116,11 +118,15 @@ describe('LeaderboardService', () => {
   it('rejects invalid tournament ids and missing tournaments', async () => {
     const { service, prisma } = createService([]);
 
-    await expect(service.getLeaderboard('abc', {})).rejects.toThrow('Invalid tournamentId');
+    await expect(service.getLeaderboard('abc', {})).rejects.toThrow(
+      'Invalid tournamentId',
+    );
 
     prisma.tournaments.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.getLeaderboard('1', {})).rejects.toThrow('Tournament not found');
+    await expect(service.getLeaderboard('1', {})).rejects.toThrow(
+      'Tournament not found',
+    );
   });
 
   function result(

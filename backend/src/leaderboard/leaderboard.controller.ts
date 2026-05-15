@@ -9,14 +9,25 @@ export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get user-based tournament leaderboard (legacy results table)' })
+  @ApiOperation({
+    summary: 'Get user-based tournament leaderboard (legacy results table)',
+  })
   getLeaderboard(@Param('id') id: string, @Query() query: LeaderboardQueryDto) {
     return this.leaderboardService.getLeaderboard(id, query);
   }
 
   @Get('teams')
-  @ApiOperation({ summary: 'Get team-based tournament leaderboard (built from evaluations)' })
-  getTeamLeaderboard(@Param('id') id: string) {
+  @ApiOperation({
+    summary:
+      'Get team-based tournament leaderboard (built from evaluations). Pass ?roundId=X for per-round leaderboard.',
+  })
+  getTeamLeaderboard(
+    @Param('id') id: string,
+    @Query('roundId') roundId?: string,
+  ) {
+    if (roundId) {
+      return this.leaderboardService.getTeamLeaderboardForRound(id, roundId);
+    }
     return this.leaderboardService.getTeamLeaderboard(id);
   }
 }

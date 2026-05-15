@@ -17,9 +17,9 @@ describe('NotificationsController', () => {
       listInAppNotificationsUseCase,
       markInAppNotificationAsReadUseCase,
       controller: new NotificationsController(
-        dispatchNotificationUseCase as never,
-        listInAppNotificationsUseCase as never,
-        markInAppNotificationAsReadUseCase as never,
+        dispatchNotificationUseCase,
+        listInAppNotificationsUseCase,
+        markInAppNotificationAsReadUseCase,
       ),
     };
   };
@@ -68,11 +68,14 @@ describe('NotificationsController', () => {
       recipientId: 'user-1',
       notifications,
     });
-    expect(listInAppNotificationsUseCase.execute).toHaveBeenCalledWith('user-1');
+    expect(listInAppNotificationsUseCase.execute).toHaveBeenCalledWith(
+      'user-1',
+    );
   });
 
   it('marks an in-app notification as read', async () => {
-    const { controller, markInAppNotificationAsReadUseCase } = createController();
+    const { controller, markInAppNotificationAsReadUseCase } =
+      createController();
 
     markInAppNotificationAsReadUseCase.execute.mockResolvedValue(undefined);
 

@@ -48,7 +48,9 @@ describe('ExportService', () => {
     expect(chunks.join('')).toContain(
       'rank,resultId,tournamentId,userId,userName,userEmail,score,wins,timeMs,createdAt',
     );
-    expect(chunks.join('')).toContain('"Ada, Lovelace",ada@example.com,99,4,800');
+    expect(chunks.join('')).toContain(
+      '"Ada, Lovelace",ada@example.com,99,4,800',
+    );
     expect(prisma.results.findMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({ skip: 0, take: 500 }),
@@ -83,17 +85,23 @@ describe('ExportService', () => {
       chunks.push(chunk.toString());
     }
 
-    expect(chunks.join('')).toContain('"Grace ""Amazing"" Hopper",grace@example.com,88,2,,');
+    expect(chunks.join('')).toContain(
+      '"Grace ""Amazing"" Hopper",grace@example.com,88,2,,',
+    );
   });
 
   it('rejects invalid ids and missing tournaments before streaming rows', async () => {
     const { service, prisma } = createService(jest.fn());
 
-    await expect(service.streamResultsCsv('bad')).rejects.toThrow('Invalid tournamentId');
+    await expect(service.streamResultsCsv('bad')).rejects.toThrow(
+      'Invalid tournamentId',
+    );
 
     prisma.tournaments.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.streamResultsCsv('1')).rejects.toThrow('Tournament not found');
+    await expect(service.streamResultsCsv('1')).rejects.toThrow(
+      'Tournament not found',
+    );
     expect(prisma.results.findMany).not.toHaveBeenCalled();
   });
 });

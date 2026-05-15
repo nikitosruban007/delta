@@ -57,8 +57,14 @@ describe('LeaderboardCacheService', () => {
     await service.del('key');
     await service.onModuleDestroy();
 
-    expect(createClient).toHaveBeenCalledWith({ url: 'redis://localhost:6379' });
-    expect(client.set).toHaveBeenCalledWith('key', JSON.stringify({ ok: true }), { EX: 10 });
+    expect(createClient).toHaveBeenCalledWith({
+      url: 'redis://localhost:6379',
+    });
+    expect(client.set).toHaveBeenCalledWith(
+      'key',
+      JSON.stringify({ ok: true }),
+      { EX: 10 },
+    );
     expect(client.del).toHaveBeenCalledWith('key');
     expect(client.quit).toHaveBeenCalled();
   });

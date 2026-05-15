@@ -7,6 +7,8 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NOTIFICATION_PORT } from '../ports/notification.port';
 import type { NotificationPort } from '../ports/notification.port';
+import { DispatchNotificationUseCase } from '../../../notifications/application/use-cases/dispatch-notification.use-case';
+import { NotificationChannel } from '../../../notifications/domain/notification-channel.enum';
 
 export interface CreateAnnouncementInput {
   tournamentId: string;
@@ -21,6 +23,7 @@ export class CreateAnnouncementUseCase {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
+    private readonly dispatcher: DispatchNotificationUseCase,
   ) {}
 
   async execute(input: CreateAnnouncementInput) {
@@ -54,7 +57,36 @@ export class CreateAnnouncementUseCase {
       updatedAt: row.updated_at ?? new Date(),
     };
 
-    await this.notifier.emitToTournament(input.tournamentId, 'announcement.created', result);
+    await this.notifier.emitToTournament(
+      input.tournamentId,
+      'announcement.created',
+      result,
+    );
+
+    try {
+      const teams = await this.prisma.tournament_teams.findMany({
+        where: { tournament_id: tournamentId },
+        include: { teams: { select: { captain_id: true } } },
+      });
+      const captainIds = Array.from(
+        new Set(
+          teams
+            .map((t) => t.teams?.captain_id)
+            .filter((x): x is number => typeof x === 'number'),
+        ),
+      );
+      if (captainIds.length > 0) {
+        await this.dispatcher.execute({
+          recipients: captainIds.map((id) => ({ userId: String(id) })),
+          subject: `Оголошення: ${input.title}`,
+          body: input.body.slice(0, 500),
+          channels: [NotificationChannel.IN_APP],
+        });
+      }
+    } catch (err) {
+      console.warn('[create-announcement] dispatch notification failed', err);
+    }
+
     return result;
   }
 }

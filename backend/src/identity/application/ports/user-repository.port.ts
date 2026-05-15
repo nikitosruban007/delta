@@ -30,8 +30,5 @@ export interface IUserRepository {
     assignedBy?: string | null;
   }): Promise<void>;
 
-  revokeRole(input: {
-    userId: string;
-    roleId: string;
-  }): Promise<void>;
+  revokeRole(input: { userId: string; roleId: string }): Promise<void>;
 }

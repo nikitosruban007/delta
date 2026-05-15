@@ -41,19 +41,31 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     return this.toTournamentEntity(row);
   }
 
-  async updateTournament(id: string, data: Partial<Tournament>): Promise<Tournament> {
+  async updateTournament(
+    id: string,
+    data: Partial<Tournament>,
+  ): Promise<Tournament> {
     const row = await this.prisma.tournaments.update({
       where: { id: Number(id) },
       data: {
         ...(data.title !== undefined && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.status !== undefined && { status: this.toPrismaStatus(data.status) }),
-        ...(data.registrationDeadline !== undefined && { registration_deadline: data.registrationDeadline }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+        ...(data.status !== undefined && {
+          status: this.toPrismaStatus(data.status),
+        }),
+        ...(data.registrationDeadline !== undefined && {
+          registration_deadline: data.registrationDeadline,
+        }),
         ...(data.startsAt !== undefined && { starts_at: data.startsAt }),
         ...(data.endsAt !== undefined && { ends_at: data.endsAt }),
-        ...(data.maxTeams !== undefined && data.maxTeams !== null && { max_teams: data.maxTeams }),
-        ...(data.teamSizeMin !== undefined && data.teamSizeMin !== null && { team_size_min: data.teamSizeMin }),
-        ...(data.teamSizeMax !== undefined && data.teamSizeMax !== null && { team_size_max: data.teamSizeMax }),
+        ...(data.maxTeams !== undefined &&
+          data.maxTeams !== null && { max_teams: data.maxTeams }),
+        ...(data.teamSizeMin !== undefined &&
+          data.teamSizeMin !== null && { team_size_min: data.teamSizeMin }),
+        ...(data.teamSizeMax !== undefined &&
+          data.teamSizeMax !== null && { team_size_max: data.teamSizeMax }),
         ...(data.rules !== undefined && { rules: data.rules }),
       },
     });
@@ -87,7 +99,9 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
       where: { id: Number(id) },
       data: {
         ...(data.title !== undefined && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(data.deadlineAt !== undefined && { deadline_at: data.deadlineAt }),
         ...(data.orderIndex !== undefined && { round_order: data.orderIndex }),
       },
@@ -96,7 +110,9 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
   }
 
   async findStageById(id: string): Promise<Stage | null> {
-    const row = await this.prisma.rounds.findUnique({ where: { id: Number(id) } });
+    const row = await this.prisma.rounds.findUnique({
+      where: { id: Number(id) },
+    });
     return row ? this.toStageEntity(row) : null;
   }
 
@@ -148,11 +164,15 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
       include: { tournament_teams: true },
     });
     if (!team) return null;
-    const tournamentId = team.tournament_teams[0]?.tournament_id?.toString() ?? '';
+    const tournamentId =
+      team.tournament_teams[0]?.tournament_id?.toString() ?? '';
     return this.toTeamEntity(team, tournamentId);
   }
 
-  async findTeamByTournamentAndCaptain(tournamentId: string, captainId: string): Promise<Team | null> {
+  async findTeamByTournamentAndCaptain(
+    tournamentId: string,
+    captainId: string,
+  ): Promise<Team | null> {
     const tournamentTeam = await this.prisma.tournament_teams.findFirst({
       where: {
         tournament_id: Number(tournamentId),
@@ -186,11 +206,13 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
 
   // ─── Submissions ──────────────────────────────────────────────────────────────
 
-  async createSubmission(data: Partial<Submission> & {
-    videoUrl?: string | null;
-    liveDemoUrl?: string | null;
-    description?: string | null;
-  }): Promise<Submission> {
+  async createSubmission(
+    data: Partial<Submission> & {
+      videoUrl?: string | null;
+      liveDemoUrl?: string | null;
+      description?: string | null;
+    },
+  ): Promise<Submission> {
     const row = await this.prisma.submissions.create({
       data: {
         team_id: Number(data.teamId),
@@ -206,29 +228,41 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
   }
 
   async findSubmissionById(id: string): Promise<Submission | null> {
-    const row = await this.prisma.submissions.findUnique({ where: { id: Number(id) } });
+    const row = await this.prisma.submissions.findUnique({
+      where: { id: Number(id) },
+    });
     return row ? this.toSubmissionEntity(row) : null;
   }
 
-  async findSubmissionByTeamAndStage(teamId: string, stageId: string): Promise<Submission | null> {
+  async findSubmissionByTeamAndStage(
+    teamId: string,
+    stageId: string,
+  ): Promise<Submission | null> {
     const row = await this.prisma.submissions.findFirst({
       where: { team_id: Number(teamId), round_id: Number(stageId) },
     });
     return row ? this.toSubmissionEntity(row) : null;
   }
 
-  async updateSubmission(id: string, data: Partial<Submission>): Promise<Submission> {
+  async updateSubmission(
+    id: string,
+    data: Partial<Submission>,
+  ): Promise<Submission> {
     const row = await this.prisma.submissions.update({
       where: { id: Number(id) },
       data: {
         ...(data.contentUrl !== undefined && { github_url: data.contentUrl }),
-        ...(data.status !== undefined && { status: this.toPrismaSubmissionStatus(data.status) }),
+        ...(data.status !== undefined && {
+          status: this.toPrismaSubmissionStatus(data.status),
+        }),
       },
     });
     return this.toSubmissionEntity(row);
   }
 
-  async listSubmissionsByTournament(tournamentId: string): Promise<Submission[]> {
+  async listSubmissionsByTournament(
+    tournamentId: string,
+  ): Promise<Submission[]> {
     const rows = await this.prisma.submissions.findMany({
       where: {
         rounds: { tournament_id: Number(tournamentId) },
@@ -238,7 +272,11 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     return rows.map(this.toSubmissionEntity);
   }
 
-  async listSubmissionsForJudge(judgeId: string): Promise<import('../../application/ports/tournament.repository.port').SubmissionWithEvaluation[]> {
+  async listSubmissionsForJudge(
+    judgeId: string,
+  ): Promise<
+    import('../../application/ports/tournament.repository.port').SubmissionWithEvaluation[]
+  > {
     const numericJudge = Number(judgeId);
     const assignments = await this.prisma.judge_assignments.findMany({
       where: { judge_id: numericJudge },
@@ -246,7 +284,9 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     });
     if (assignments.length === 0) return [];
 
-    const stageIds = assignments.filter((a) => a.stage_id !== null).map((a) => a.stage_id!) as number[];
+    const stageIds = assignments
+      .filter((a) => a.stage_id !== null)
+      .map((a) => a.stage_id!);
     const wholeTournamentIds = assignments
       .filter((a) => a.stage_id === null)
       .map((a) => a.tournament_id);
@@ -254,11 +294,18 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     const orConditions: any[] = [];
     if (stageIds.length > 0) orConditions.push({ round_id: { in: stageIds } });
     if (wholeTournamentIds.length > 0) {
-      orConditions.push({ rounds: { tournament_id: { in: wholeTournamentIds } } });
+      orConditions.push({
+        rounds: { tournament_id: { in: wholeTournamentIds } },
+      });
     }
 
     const rows = await this.prisma.submissions.findMany({
-      where: { AND: [{ status: { in: ['submitted', 'reviewed'] } }, { OR: orConditions }] },
+      where: {
+        AND: [
+          { status: { in: ['submitted', 'reviewed'] } },
+          { OR: orConditions },
+        ],
+      },
       include: {
         rounds: {
           include: {
@@ -318,7 +365,9 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
 
   // ─── Judge Assignments ───────────────────────────────────────────────────────
 
-  async createJudgeAssignment(data: Partial<JudgeAssignment>): Promise<JudgeAssignment> {
+  async createJudgeAssignment(
+    data: Partial<JudgeAssignment>,
+  ): Promise<JudgeAssignment> {
     return new JudgeAssignment(
       crypto.randomUUID(),
       data.tournamentId ?? '',
@@ -350,7 +399,7 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
       String(row.id),
       row.title,
       row.description,
-      row.created_by ? String(row.created_by) : '',
+      row.created_by ? String(row.created_by) : undefined,
       this.toDomainStatus(row.status),
       row.registration_deadline ?? null,
       row.starts_at ?? null,
@@ -387,7 +436,12 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
   };
 
   private toTeamEntity = (
-    row: { id: number; name: string; captain_id: number | null; created_at?: Date | null },
+    row: {
+      id: number;
+      name: string;
+      captain_id: number | null;
+      created_at?: Date | null;
+    },
     tournamentId: string,
   ): Team => {
     return new Team(
@@ -426,9 +480,15 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     return (valid.includes(s) ? s : 'draft') as TournamentStatus;
   }
 
-  private toPrismaStatus(status: string): 'draft' | 'registration' | 'active' | 'finished' {
+  private toPrismaStatus(
+    status: string,
+  ): 'draft' | 'registration' | 'active' | 'finished' {
     const valid = ['draft', 'registration', 'active', 'finished'];
-    return (valid.includes(status) ? status : 'draft') as 'draft' | 'registration' | 'active' | 'finished';
+    return (valid.includes(status) ? status : 'draft') as
+      | 'draft'
+      | 'registration'
+      | 'active'
+      | 'finished';
   }
 
   private toDomainSubmissionStatus(status: string | null): ScoreStatus {
@@ -440,7 +500,9 @@ export class PrismaTournamentRepository implements TournamentRepositoryPort {
     return map[status ?? 'draft'] ?? ScoreStatus.DRAFT;
   }
 
-  private toPrismaSubmissionStatus(status: ScoreStatus): 'draft' | 'submitted' | 'reviewed' {
+  private toPrismaSubmissionStatus(
+    status: ScoreStatus,
+  ): 'draft' | 'submitted' | 'reviewed' {
     const map: Record<ScoreStatus, 'draft' | 'submitted' | 'reviewed'> = {
       [ScoreStatus.DRAFT]: 'draft',
       [ScoreStatus.SUBMITTED]: 'submitted',

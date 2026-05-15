@@ -28,7 +28,9 @@ import { TournamentsModule } from './tournaments.module';
 
 describe('TournamentsModule and barrel exports', () => {
   it('wires controllers, providers and repository export', () => {
-    expect(Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, TournamentsModule)).toEqual(
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, TournamentsModule),
+    ).toEqual(
       expect.arrayContaining([
         TournamentsController,
         StagesController,
@@ -38,7 +40,9 @@ describe('TournamentsModule and barrel exports', () => {
         JudgesController,
       ]),
     );
-    expect(Reflect.getMetadata(MODULE_METADATA.PROVIDERS, TournamentsModule)).toEqual(
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, TournamentsModule),
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ provide: TOURNAMENT_REPOSITORY }),
         expect.objectContaining({ provide: CACHE_PORT }),
@@ -54,9 +58,9 @@ describe('TournamentsModule and barrel exports', () => {
         ScoreSubmissionUseCase,
       ]),
     );
-    expect(Reflect.getMetadata(MODULE_METADATA.EXPORTS, TournamentsModule)).toContain(
-      TOURNAMENT_REPOSITORY,
-    );
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.EXPORTS, TournamentsModule),
+    ).toContain(TOURNAMENT_REPOSITORY);
   });
 
   it('exports tournament public API from index.ts', () => {

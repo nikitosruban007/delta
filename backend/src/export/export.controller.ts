@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Query, Res, StreamableFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Res,
+  StreamableFile,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { ExportResultsQueryDto } from './dto/export-results-query.dto';
@@ -23,6 +30,36 @@ export class ExportController {
       'Content-Disposition': `attachment; filename="tournament-${id}-results.csv"`,
     });
 
+    return new StreamableFile(stream);
+  }
+
+  @Get('teams')
+  @ApiOperation({ summary: 'Export team leaderboard as CSV' })
+  async exportTeamLeaderboard(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const stream = await this.exportService.streamTeamLeaderboardCsv(id);
+    response.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="tournament-${id}-teams.csv"`,
+    });
+    return new StreamableFile(stream);
+  }
+
+  @Get('submissions')
+  @ApiOperation({
+    summary: 'Export tournament submissions (with avg score) as CSV',
+  })
+  async exportSubmissions(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const stream = await this.exportService.streamSubmissionsCsv(id);
+    response.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="tournament-${id}-submissions.csv"`,
+    });
     return new StreamableFile(stream);
   }
 }

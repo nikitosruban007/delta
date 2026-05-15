@@ -30,7 +30,8 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
       provider: 'github',
       providerId: profile.id,
       email,
-      name: profile.displayName?.trim() || profile.username || email.split('@')[0],
+      name:
+        profile.displayName?.trim() || profile.username || email.split('@')[0],
       avatarUrl: profile.photos?.[0]?.value ?? null,
     };
   }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   Archive,
   Bell,
+  CalendarDays,
   ChevronDown,
   Flag,
   GraduationCap,
@@ -24,8 +25,9 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/contexts/auth-context";
 import { useLanguage } from "@/contexts/language-context";
-import { tournamentsApi, type TournamentStatus, type Tournament } from "@/lib/api";
+import { tournamentsApi, usersApi, type TournamentStatus, type Tournament } from "@/lib/api";
 import Footer from "@/components/shared/Footer";
+import { NotificationsBell } from "@/components/shared/NotificationsBell";
 
 type TabKey = "upcoming" | "registration" | "current" | "finished";
 
@@ -112,10 +114,23 @@ function TournamentCard({
 export default function DashboardPage() {
   const { t, language } = useLanguage();
   const router = useRouter();
-  const { user, logout, isLoading, hasRole } = useAuth();
+  const { user, token, logout, isLoading, hasRole } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("registration");
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
+
+  // CTA: surface the most recent active tournament where the user has a team
+  // so the submit-work entry-point is one click away (no hunting through profile).
+  const { data: myTournaments = [] } = useQuery({
+    queryKey: ["my-tournaments"],
+    queryFn: () => usersApi.myTournaments(token!),
+    enabled: Boolean(token),
+  });
+  const submitTarget = myTournaments.find(
+    (t) =>
+      (t.status === "active" || t.status === "registration") &&
+      t.teams.length > 0,
+  );
 
   const tabs = [
     { key: "upcoming" as TabKey, label: t("dashboard.tabs.upcoming"), icon: History, apiStatus: "draft" as TournamentStatus },
@@ -160,9 +175,7 @@ export default function DashboardPage() {
           <span className="text-lg leading-none">←</span> {t("dashboard.back")}
         </Link>
         <div className="flex items-center gap-6">
-          <button className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/20 transition hover:bg-white/10">
-            <Bell size={18} className="text-white" />
-          </button>
+          <NotificationsBell />
           <div className="flex items-center gap-3">
             <span className="text-[24px] font-semibold tracking-wide">FoldUp</span>
             <img src="/image/orange_icon.png" alt="FoldUp Logo" className="h-8 w-auto" />
@@ -173,9 +186,14 @@ export default function DashboardPage() {
       <div className="w-full mx-auto flex max-w-[1340px] gap-8 px-8 py-8">
         <aside className="h-fit w-[250px] shrink-0 rounded-xl border border-[#E0E0E0] bg-white p-6 shadow-sm">
           <div className="relative flex flex-col items-center border-b border-[#E0E0E0] pb-6">
-            <button className="absolute right-0 top-0 text-[#888] transition hover:text-[#111]">
+            <Link
+              href="/profile-setup"
+              title="Профіль і налаштування"
+              aria-label="Профіль і налаштування"
+              className="absolute right-0 top-0 text-[#888] transition hover:text-[#111]"
+            >
               <Settings size={20} />
-            </button>
+            </Link>
             <div className="mt-2 flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#8A8A8A] text-2xl font-bold text-white">
               {user?.name?.[0]?.toUpperCase() ?? "?"}
             </div>
@@ -196,9 +214,9 @@ export default function DashboardPage() {
             </button>
           </div>
           <nav className="mt-6 flex flex-col gap-4 text-[13px] font-medium text-[#444]">
-            <Link href="#" className="flex items-center justify-between transition hover:text-[#111]">
+            <Link href="/dashboard/my-tournaments" className="flex items-center justify-between transition hover:text-[#111]">
               <div className="flex items-center gap-3">
-                <Users size={18} /> {t("dashboard.sidebar.teams")}
+                <Users size={18} /> Мої турніри
               </div>
               <span className="text-lg leading-none">→</span>
             </Link>
@@ -207,6 +225,9 @@ export default function DashboardPage() {
             </Link>
             <Link href="/forum" className="flex items-center gap-3 transition hover:text-[#111]">
               <GraduationCap size={18} /> {t("forum.title")}
+            </Link>
+            <Link href="/schedule" className="flex items-center gap-3 transition hover:text-[#111]">
+              <CalendarDays size={18} /> Розклад
             </Link>
             <Link href="/archive" className="flex items-center justify-between transition hover:text-[#111]">
               <div className="flex items-center gap-3">
@@ -224,6 +245,11 @@ export default function DashboardPage() {
                 <Trophy size={18} /> {t("dashboard.organizer")}
               </Link>
             )}
+            {hasRole("ADMIN") && (
+              <Link href="/admin" className="flex items-center gap-3 transition hover:text-[#111] text-[#dc2626]">
+                <Settings size={18} /> Admin panel
+              </Link>
+            )}
           </nav>
         </aside>
 
@@ -235,6 +261,29 @@ export default function DashboardPage() {
           <p className="mt-2 text-sm text-[#666]">{t("dashboard.welcome")}, {user?.name ?? ""}!</p>
         </div>
       </div>
+
+      {submitTarget && (
+        <div className="w-full bg-[#f0fdf4] py-3">
+          <div className="mx-auto flex max-w-[1340px] flex-wrap items-center justify-between gap-3 px-8">
+            <p className="text-sm text-[#166534]">
+              У вас є активна команда у турнірі{" "}
+              <Link
+                href={`/tournaments/${submitTarget.tournamentId}`}
+                className="font-semibold underline-offset-2 hover:underline"
+              >
+                {submitTarget.title}
+              </Link>
+              .
+            </p>
+            <Link
+              href={`/tournaments/${submitTarget.tournamentId}/submission`}
+              className="inline-flex items-center gap-2 rounded-md bg-[#166534] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#125227]"
+            >
+              Подати роботу →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="w-full bg-[#E4EDFA] py-3">
         <div className="w-full mx-auto flex max-w-[1340px] items-center justify-between px-8">
@@ -253,7 +302,15 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (search.trim().length >= 2) {
+                router.push(`/search?q=${encodeURIComponent(search.trim())}`);
+              }
+            }}
+            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 shadow-sm"
+          >
             <Search size={16} className="text-[#888]" />
             <input
               type="text"
@@ -262,7 +319,7 @@ export default function DashboardPage() {
               placeholder={t("forum.search_placeholder")}
               className="w-[180px] bg-transparent text-[13px] text-[#111] outline-none placeholder:text-[#888]"
             />
-          </div>
+          </form>
         </div>
       </div>
 

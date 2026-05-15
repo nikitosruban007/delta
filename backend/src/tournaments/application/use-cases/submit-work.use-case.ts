@@ -42,10 +42,15 @@ export class SubmitWorkUseCase {
     if (!stage) throw new NotFoundException('Round not found');
 
     if (stage.deadline_at && stage.deadline_at.getTime() < Date.now()) {
-      throw new BadRequestException('Round deadline has passed; submissions are closed');
+      throw new BadRequestException(
+        'Round deadline has passed; submissions are closed',
+      );
     }
 
-    if (stage.tournaments.status !== 'active' && stage.tournaments.status !== 'registration') {
+    if (
+      stage.tournaments.status !== 'active' &&
+      stage.tournaments.status !== 'registration'
+    ) {
       throw new BadRequestException(
         `Submissions are not accepted in tournament status: ${stage.tournaments.status}`,
       );
@@ -55,14 +60,16 @@ export class SubmitWorkUseCase {
       where: { team_id: teamId, user_id: userId },
       select: { id: true },
     });
-    if (!membership) throw new ForbiddenException('You are not a member of this team');
+    if (!membership)
+      throw new ForbiddenException('You are not a member of this team');
 
     // Team must be registered in this tournament
     const link = await this.prisma.tournament_teams.findFirst({
       where: { tournament_id: stage.tournament_id, team_id: teamId },
       select: { id: true },
     });
-    if (!link) throw new ForbiddenException('Team is not registered in this tournament');
+    if (!link)
+      throw new ForbiddenException('Team is not registered in this tournament');
 
     const existing = await this.prisma.submissions.findFirst({
       where: { team_id: teamId, round_id: stageId },
@@ -78,7 +85,10 @@ export class SubmitWorkUseCase {
     };
 
     const submission = existing
-      ? await this.prisma.submissions.update({ where: { id: existing.id }, data })
+      ? await this.prisma.submissions.update({
+          where: { id: existing.id },
+          data,
+        })
       : await this.prisma.submissions.create({
           data: { team_id: teamId, round_id: stageId, ...data },
         });
@@ -86,7 +96,11 @@ export class SubmitWorkUseCase {
     await this.notifier.emitToTournament(
       String(stage.tournament_id),
       'submission.created',
-      { id: String(submission.id), teamId: String(teamId), roundId: String(stageId) },
+      {
+        id: String(submission.id),
+        teamId: String(teamId),
+        roundId: String(stageId),
+      },
     );
 
     return {

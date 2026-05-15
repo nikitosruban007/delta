@@ -15,7 +15,9 @@ export class PrismaPermissionRepository implements IPermissionRepository {
   }
 
   async findByCode(code: string) {
-    const permission = await this.prisma.permissions.findUnique({ where: { code } });
+    const permission = await this.prisma.permissions.findUnique({
+      where: { code },
+    });
 
     return permission ? this.toPermission(permission) : null;
   }

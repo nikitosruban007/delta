@@ -76,12 +76,17 @@ describe('ForumsService', () => {
     const { prisma, service } = serviceWith();
     const categoryWithCount = { ...category, _count: { forum_topics: 0 } };
 
-    prisma.forum_categories.findMany.mockResolvedValue([categoryWithCount] as never);
-    prisma.forum_categories.findUnique.mockResolvedValue(categoryWithCount as never);
-    prisma.forum_categories.create.mockResolvedValue(category as never);
-    prisma.forum_categories.update.mockResolvedValue({ ...category, title: 'News' } as never);
-    prisma.forum_topics.count.mockResolvedValue(0 as never);
-    prisma.forum_categories.delete.mockResolvedValue(category as never);
+    prisma.forum_categories.findMany.mockResolvedValue([
+      categoryWithCount,
+    ] as never);
+    prisma.forum_categories.findUnique.mockResolvedValue(categoryWithCount);
+    prisma.forum_categories.create.mockResolvedValue(category);
+    prisma.forum_categories.update.mockResolvedValue({
+      ...category,
+      title: 'News',
+    });
+    prisma.forum_topics.count.mockResolvedValue(0);
+    prisma.forum_categories.delete.mockResolvedValue(category);
 
     await expect(service.listCategories()).resolves.toEqual([
       { id: 3, title: 'General', topicsCount: 0 },
@@ -91,10 +96,12 @@ describe('ForumsService', () => {
       title: 'General',
       topicsCount: 0,
     });
-    await expect(service.createCategory({ title: '  General  ' })).resolves.toEqual(
-      category,
-    );
-    await expect(service.updateCategory('3', { title: '  News  ' })).resolves.toEqual({
+    await expect(
+      service.createCategory({ title: '  General  ' }),
+    ).resolves.toEqual(category);
+    await expect(
+      service.updateCategory('3', { title: '  News  ' }),
+    ).resolves.toEqual({
       id: 3,
       title: 'News',
     });
@@ -115,17 +122,23 @@ describe('ForumsService', () => {
   it('throws category errors for missing, invalid and non-empty categories', async () => {
     const { prisma, service } = serviceWith();
 
-    await expect(service.getCategory('abc')).rejects.toBeInstanceOf(BadRequestException);
-
-    prisma.forum_categories.findUnique.mockResolvedValue(null as never);
-    await expect(service.getCategory('3')).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.updateCategory('3', { title: 'News' })).rejects.toBeInstanceOf(
-      NotFoundException,
+    await expect(service.getCategory('abc')).rejects.toBeInstanceOf(
+      BadRequestException,
     );
 
-    prisma.forum_categories.findUnique.mockResolvedValue({ id: 3 } as never);
-    prisma.forum_topics.count.mockResolvedValue(1 as never);
-    await expect(service.deleteCategory('3')).rejects.toBeInstanceOf(BadRequestException);
+    prisma.forum_categories.findUnique.mockResolvedValue(null);
+    await expect(service.getCategory('3')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(
+      service.updateCategory('3', { title: 'News' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.forum_categories.findUnique.mockResolvedValue({ id: 3 });
+    prisma.forum_topics.count.mockResolvedValue(1);
+    await expect(service.deleteCategory('3')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('lists topics with filters, search and pagination', async () => {
@@ -209,7 +222,7 @@ describe('ForumsService', () => {
       users: null,
       forum_categories: null,
       _count: { forum_posts: 0 },
-    } as never);
+    });
 
     await expect(service.getTopic('11')).resolves.toEqual({
       id: 11,
@@ -229,14 +242,22 @@ describe('ForumsService', () => {
       forum_posts: { create: jest.fn() },
     };
 
-    prisma.users.findUnique.mockResolvedValue({ id: author.id } as never);
-    prisma.forum_categories.findUnique.mockResolvedValue({ id: category.id } as never);
-    prisma.$transaction.mockImplementation(async (callback: any) => callback(tx));
-    prisma.forum_topics.findUnique.mockResolvedValue(topicItem as never);
+    prisma.users.findUnique.mockResolvedValue({ id: author.id });
+    prisma.forum_categories.findUnique.mockResolvedValue({
+      id: category.id,
+    });
+    prisma.$transaction.mockImplementation(async (callback: any) =>
+      callback(tx),
+    );
+    prisma.forum_topics.findUnique.mockResolvedValue(topicItem);
 
     await expect(
       service.createTopic(
-        { categoryId: '3' as unknown as number, title: '  First topic  ', content: '  Hello  ' },
+        {
+          categoryId: '3' as unknown as number,
+          title: '  First topic  ',
+          content: '  Hello  ',
+        },
         { id: '7', roles: [] },
       ),
     ).resolves.toMatchObject({ id: 11, postsCount: 2 });
@@ -253,12 +274,15 @@ describe('ForumsService', () => {
     const { prisma, service } = serviceWith();
 
     prisma.forum_topics.findUnique
-      .mockResolvedValueOnce(topicItem as never)
-      .mockResolvedValueOnce({ ...topicItem, title: 'Updated' } as never)
-      .mockResolvedValueOnce({ ...topicItem, author_id: 9 } as never);
-    prisma.forum_categories.findUnique.mockResolvedValue({ id: 3 } as never);
-    prisma.forum_topics.update.mockResolvedValue({ ...topicItem, title: 'Updated' } as never);
-    prisma.forum_topics.delete.mockResolvedValue(topicItem as never);
+      .mockResolvedValueOnce(topicItem)
+      .mockResolvedValueOnce({ ...topicItem, title: 'Updated' })
+      .mockResolvedValueOnce({ ...topicItem, author_id: 9 });
+    prisma.forum_categories.findUnique.mockResolvedValue({ id: 3 });
+    prisma.forum_topics.update.mockResolvedValue({
+      ...topicItem,
+      title: 'Updated',
+    });
+    prisma.forum_topics.delete.mockResolvedValue(topicItem);
 
     await expect(
       service.updateTopic(
@@ -268,7 +292,9 @@ describe('ForumsService', () => {
       ),
     ).resolves.toMatchObject({ id: 11, title: 'Updated' });
 
-    await expect(service.deleteTopic('11', { id: 7, roles: ['ADMIN'] })).resolves.toEqual({
+    await expect(
+      service.deleteTopic('11', { id: 7, roles: ['ADMIN'] }),
+    ).resolves.toEqual({
       id: 11,
       deleted: true,
     });
@@ -278,10 +304,10 @@ describe('ForumsService', () => {
     const { prisma, service } = serviceWith();
 
     prisma.forum_topics.findUnique
-      .mockResolvedValueOnce(topicItem as never)
-      .mockResolvedValueOnce(topicItem as never);
-    prisma.forum_categories.findUnique.mockResolvedValue({ id: 4 } as never);
-    prisma.forum_topics.update.mockResolvedValue(topicItem as never);
+      .mockResolvedValueOnce(topicItem)
+      .mockResolvedValueOnce(topicItem);
+    prisma.forum_categories.findUnique.mockResolvedValue({ id: 4 });
+    prisma.forum_topics.update.mockResolvedValue(topicItem);
 
     await expect(
       service.updateTopic(
@@ -301,9 +327,12 @@ describe('ForumsService', () => {
     const { prisma, service } = serviceWith();
 
     prisma.forum_topics.findUnique
-      .mockResolvedValueOnce(topicItem as never)
-      .mockResolvedValueOnce({ ...topicItem, title: 'Renamed' } as never);
-    prisma.forum_topics.update.mockResolvedValue({ ...topicItem, title: 'Renamed' } as never);
+      .mockResolvedValueOnce(topicItem)
+      .mockResolvedValueOnce({ ...topicItem, title: 'Renamed' });
+    prisma.forum_topics.update.mockResolvedValue({
+      ...topicItem,
+      title: 'Renamed',
+    });
 
     await expect(
       service.updateTopic('11', { title: ' Renamed ' }, { id: 7, roles: [] }),
@@ -318,23 +347,25 @@ describe('ForumsService', () => {
   it('throws topic validation, not-found and authorization errors', async () => {
     const { prisma, service } = serviceWith();
 
-    await expect(service.listTopics({ limit: '101' as unknown as number })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-    await expect(service.listTopics({ page: '0' as unknown as number })).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      service.listTopics({ limit: '101' as unknown as number }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.listTopics({ page: '0' as unknown as number }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    prisma.forum_topics.findUnique.mockResolvedValue(null as never);
-    await expect(service.getTopic('11')).rejects.toBeInstanceOf(NotFoundException);
+    prisma.forum_topics.findUnique.mockResolvedValue(null);
+    await expect(service.getTopic('11')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(
       service.updateTopic('11', { title: 'Updated' }, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.deleteTopic('11', { id: 7, roles: [] })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.deleteTopic('11', { id: 7, roles: [] }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.forum_topics.findUnique.mockResolvedValue(topicItem as never);
+    prisma.forum_topics.findUnique.mockResolvedValue(topicItem);
     await expect(
       service.updateTopic('11', {}, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -346,16 +377,32 @@ describe('ForumsService', () => {
   it('lists, creates, updates and deletes posts', async () => {
     const { prisma, service } = serviceWith();
 
-    prisma.forum_topics.findUnique.mockResolvedValue({ id: 11 } as never);
-    prisma.users.findUnique.mockResolvedValue({ id: 7 } as never);
+    prisma.forum_topics.findUnique.mockResolvedValue({ id: 11 });
+    prisma.users.findUnique.mockResolvedValue({ id: 7 });
     prisma.$transaction.mockResolvedValue([[postItem], 1] as never);
-    prisma.forum_posts.create.mockResolvedValue({ ...postItem, content: 'Reply' } as never);
-    prisma.forum_posts.findUnique.mockResolvedValue(postItem as never);
-    prisma.forum_posts.update.mockResolvedValue({ ...postItem, content: 'Updated' } as never);
-    prisma.forum_posts.delete.mockResolvedValue(postItem as never);
+    prisma.forum_posts.create.mockResolvedValue({
+      ...postItem,
+      content: 'Reply',
+    });
+    prisma.forum_posts.findUnique.mockResolvedValue(postItem);
+    prisma.forum_posts.update.mockResolvedValue({
+      ...postItem,
+      content: 'Updated',
+    });
+    prisma.forum_posts.delete.mockResolvedValue(postItem);
 
-    await expect(service.listPosts('11', { page: 1, limit: 10 })).resolves.toEqual({
-      items: [{ id: 21, topicId: 11, content: 'Hello', createdAt: POST_DATE, author: { id: 7, name: 'Ada', avatarUrl: null } }],
+    await expect(
+      service.listPosts('11', { page: 1, limit: 10 }),
+    ).resolves.toEqual({
+      items: [
+        {
+          id: 21,
+          topicId: 11,
+          content: 'Hello',
+          createdAt: POST_DATE,
+          author: { id: 7, name: 'Ada', avatarUrl: null },
+        },
+      ],
       pagination: { page: 1, limit: 10, total: 1, pages: 1 },
     });
     await expect(
@@ -376,7 +423,9 @@ describe('ForumsService', () => {
       createdAt: POST_DATE,
       author: { id: 7, name: 'Ada', avatarUrl: null },
     });
-    await expect(service.deletePost('21', { id: 99, roles: ['ADMIN'] })).resolves.toEqual({
+    await expect(
+      service.deletePost('21', { id: 99, roles: ['ADMIN'] }),
+    ).resolves.toEqual({
       id: 21,
       deleted: true,
     });
@@ -385,27 +434,32 @@ describe('ForumsService', () => {
   it('throws post and dependency errors', async () => {
     const { prisma, service } = serviceWith();
 
-    prisma.forum_topics.findUnique.mockResolvedValue(null as never);
-    await expect(service.listPosts('11', {})).rejects.toBeInstanceOf(NotFoundException);
+    prisma.forum_topics.findUnique.mockResolvedValue(null);
+    await expect(service.listPosts('11', {})).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(
       service.createPost('11', { content: 'Reply' }, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.forum_topics.findUnique.mockResolvedValue({ id: 11 } as never);
-    prisma.users.findUnique.mockResolvedValue(null as never);
+    prisma.forum_topics.findUnique.mockResolvedValue({ id: 11 });
+    prisma.users.findUnique.mockResolvedValue(null);
     await expect(
       service.createPost('11', { content: 'Reply' }, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.forum_posts.findUnique.mockResolvedValue(null as never);
+    prisma.forum_posts.findUnique.mockResolvedValue(null);
     await expect(
       service.updatePost('21', { content: 'Nope' }, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(service.deletePost('21', { id: 7, roles: [] })).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.deletePost('21', { id: 7, roles: [] }),
+    ).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.forum_posts.findUnique.mockResolvedValue({ id: 21, author_id: 9 } as never);
+    prisma.forum_posts.findUnique.mockResolvedValue({
+      id: 21,
+      author_id: 9,
+    });
     await expect(
       service.updatePost('21', { content: 'Nope' }, { id: 7, roles: [] }),
     ).rejects.toBeInstanceOf(ForbiddenException);
@@ -414,7 +468,7 @@ describe('ForumsService', () => {
   it('throws user and category dependency errors while creating topics', async () => {
     const { prisma, service } = serviceWith();
 
-    prisma.users.findUnique.mockResolvedValue(null as never);
+    prisma.users.findUnique.mockResolvedValue(null);
     await expect(
       service.createTopic(
         { categoryId: 3, title: 'Topic', content: 'Body' },
@@ -422,8 +476,8 @@ describe('ForumsService', () => {
       ),
     ).rejects.toBeInstanceOf(NotFoundException);
 
-    prisma.users.findUnique.mockResolvedValue({ id: 7 } as never);
-    prisma.forum_categories.findUnique.mockResolvedValue(null as never);
+    prisma.users.findUnique.mockResolvedValue({ id: 7 });
+    prisma.forum_categories.findUnique.mockResolvedValue(null);
     await expect(
       service.createTopic(
         { categoryId: 3, title: 'Topic', content: 'Body' },

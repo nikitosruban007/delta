@@ -14,7 +14,12 @@ import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.gua
 import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
+type AuthUser = {
+  id: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+};
 
 @ApiTags('announcements')
 @Controller('announcements')
@@ -27,10 +32,14 @@ export class AnnouncementsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create tournament announcement (owner or admin only)' })
+  @ApiOperation({
+    summary: 'Create tournament announcement (owner or admin only)',
+  })
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateAnnouncementDto) {
     if (!user.roles.includes('ADMIN') && !user.roles.includes('ORGANIZER')) {
-      throw new ForbiddenException('Only admins and organizers can create announcements');
+      throw new ForbiddenException(
+        'Only admins and organizers can create announcements',
+      );
     }
     return this.createAnnouncement.execute({
       tournamentId: dto.tournamentId,
@@ -47,7 +56,9 @@ export class AnnouncementsController {
     const rows = await this.prisma.announcements.findMany({
       where: { tournament_id: Number(tournamentId) },
       orderBy: { created_at: 'desc' },
-      include: { users: { select: { id: true, name: true, avatar_url: true } } },
+      include: {
+        users: { select: { id: true, name: true, avatar_url: true } },
+      },
     });
     return rows.map((r) => ({
       id: String(r.id),
@@ -56,7 +67,11 @@ export class AnnouncementsController {
       body: r.body,
       createdAt: r.created_at,
       author: r.users
-        ? { id: String(r.users.id), name: r.users.name, avatarUrl: r.users.avatar_url }
+        ? {
+            id: String(r.users.id),
+            name: r.users.name,
+            avatarUrl: r.users.avatar_url,
+          }
         : null,
     }));
   }

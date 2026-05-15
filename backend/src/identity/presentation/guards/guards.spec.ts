@@ -32,12 +32,16 @@ describe('identity guards', () => {
         }),
       ),
     ).toBe(true);
-    expect((reflector.getAllAndOverride as jest.Mock).mock.calls[0][0]).toBe(ROLES_KEY);
+    expect((reflector.getAllAndOverride as jest.Mock).mock.calls[0][0]).toBe(
+      ROLES_KEY,
+    );
   });
 
   it('PermissionsGuard rejects users missing required permissions', () => {
     const reflector = {
-      getAllAndOverride: jest.fn().mockReturnValue(['users.read', 'users.write']),
+      getAllAndOverride: jest
+        .fn()
+        .mockReturnValue(['users.read', 'users.write']),
     } as unknown as Reflector;
 
     const guard = new PermissionsGuard(reflector);

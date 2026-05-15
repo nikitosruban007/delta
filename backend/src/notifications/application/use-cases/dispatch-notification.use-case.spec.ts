@@ -88,7 +88,9 @@ describe('DispatchNotificationUseCase', () => {
     expect(emailGateway.getSentEmails()[0].recipientEmail).toBe(
       'user-7@example.com',
     );
-    await expect(inAppRepository.findByRecipient('user-7')).resolves.toEqual([]);
+    await expect(inAppRepository.findByRecipient('user-7')).resolves.toEqual(
+      [],
+    );
   });
 
   it('does not send anything when no channel is selected', async () => {

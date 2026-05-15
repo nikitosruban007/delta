@@ -10,7 +10,9 @@ export class AccessMapper {
     const roles = user.roles.map((r) => r.role.name);
     const permissions = [
       ...new Set(
-        user.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.code)),
+        user.roles.flatMap((r) =>
+          r.role.permissions.map((p) => p.permission.code),
+        ),
       ),
     ];
 

@@ -23,6 +23,7 @@ type AuthState = {
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  refresh: () => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   hasRole: (role: string) => boolean;
@@ -67,6 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, [setStoredToken]);
 
+  const refresh = useCallback(async () => {
+    const token = localStorage.getItem(TOKEN_KEY) ?? state.token;
+    if (!token) return;
+
+    try {
+      const user = await authApi.me(token);
+      setState({ user, token, isLoading: false });
+    } catch {
+      setStoredToken(null);
+      setState({ user: null, token: null, isLoading: false });
+    }
+  }, [setStoredToken, state.token]);
+
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login({ email, password });
     setStoredToken(res.accessToken);
@@ -97,11 +111,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...state,
       login,
       register,
+      refresh,
       logout,
       isAuthenticated: Boolean(state.user),
       hasRole,
     }),
-    [state, login, register, logout, hasRole],
+    [state, login, register, refresh, logout, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

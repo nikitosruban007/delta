@@ -8,7 +8,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { IsOptional, IsString, IsUrl, Length } from 'class-validator';
 import { SubmitWorkUseCase } from '../../application/use-cases/submit-work.use-case';
 import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.guard';
@@ -24,10 +31,19 @@ class CreateSubmissionDto {
   @ApiProperty() @IsUrl() githubUrl!: string;
   @ApiPropertyOptional() @IsOptional() @IsUrl() videoUrl?: string;
   @ApiPropertyOptional() @IsOptional() @IsUrl() liveDemoUrl?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(0, 2000) description?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  description?: string;
 }
 
-type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
+type AuthUser = {
+  id: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+};
 
 @ApiTags('submissions')
 @ApiBearerAuth()
@@ -35,14 +51,20 @@ type AuthUser = { id: string; email: string; roles: string[]; permissions: strin
 export class SubmissionsController {
   constructor(
     private readonly submitWork: SubmitWorkUseCase,
-    @Inject(TOURNAMENT_REPOSITORY) private readonly repo: TournamentRepositoryPort,
+    @Inject(TOURNAMENT_REPOSITORY)
+    private readonly repo: TournamentRepositoryPort,
     private readonly prisma: PrismaService,
   ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create or update a submission for a round (before its deadline)' })
-  async submit(@CurrentUser() user: AuthUser, @Body() dto: CreateSubmissionDto) {
+  @ApiOperation({
+    summary: 'Create or update a submission for a round (before its deadline)',
+  })
+  async submit(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateSubmissionDto,
+  ) {
     return this.submitWork.execute({
       stageId: dto.roundId,
       teamId: dto.teamId,
@@ -56,7 +78,9 @@ export class SubmissionsController {
 
   @Get('team')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Get the current team submission for a round (if any)' })
+  @ApiOperation({
+    summary: 'Get the current team submission for a round (if any)',
+  })
   @ApiQuery({ name: 'teamId', required: true })
   @ApiQuery({ name: 'roundId', required: true })
   async getCurrentForTeam(
@@ -78,7 +102,9 @@ export class SubmissionsController {
     }
     const row = await this.prisma.submissions.findFirst({
       where: { team_id: tId, round_id: rId },
-      include: { rounds: { select: { deadline_at: true, tournament_id: true } } },
+      include: {
+        rounds: { select: { deadline_at: true, tournament_id: true } },
+      },
     });
     if (!row) {
       const round = await this.prisma.rounds.findUnique({
@@ -88,7 +114,9 @@ export class SubmissionsController {
       return {
         submission: null,
         deadlineAt: round?.deadline_at ?? null,
-        locked: round?.deadline_at ? round.deadline_at.getTime() < Date.now() : false,
+        locked: round?.deadline_at
+          ? round.deadline_at.getTime() < Date.now()
+          : false,
       };
     }
     const deadlineAt = row.rounds?.deadline_at ?? null;

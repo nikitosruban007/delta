@@ -23,13 +23,21 @@ describe('ConsultationsLogger', () => {
     it('should log info message with metadata', () => {
       logger.info('Test message', { userId: 'user-1' });
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('[consultations] INFO', 'Test message', { userId: 'user-1' });
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[consultations] INFO',
+        'Test message',
+        { userId: 'user-1' },
+      );
     });
 
     it('should log info message without metadata', () => {
       logger.info('Test message');
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('[consultations] INFO', 'Test message', '');
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        '[consultations] INFO',
+        'Test message',
+        '',
+      );
     });
   });
 
@@ -37,13 +45,21 @@ describe('ConsultationsLogger', () => {
     it('should log warning message with metadata', () => {
       logger.warn('Warning message', { consultationId: 'c1' });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith('[consultations] WARN', 'Warning message', { consultationId: 'c1' });
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[consultations] WARN',
+        'Warning message',
+        { consultationId: 'c1' },
+      );
     });
 
     it('should log warning message without metadata', () => {
       logger.warn('Warning message');
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith('[consultations] WARN', 'Warning message', '');
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[consultations] WARN',
+        'Warning message',
+        '',
+      );
     });
   });
 
@@ -51,13 +67,21 @@ describe('ConsultationsLogger', () => {
     it('should log error message with metadata', () => {
       logger.error('Error message', { error: 'test error' });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[consultations] ERROR', 'Error message', { error: 'test error' });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[consultations] ERROR',
+        'Error message',
+        { error: 'test error' },
+      );
     });
 
     it('should log error message without metadata', () => {
       logger.error('Error message');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('[consultations] ERROR', 'Error message', '');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[consultations] ERROR',
+        'Error message',
+        '',
+      );
     });
   });
 

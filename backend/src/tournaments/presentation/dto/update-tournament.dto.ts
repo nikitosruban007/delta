@@ -61,7 +61,9 @@ export class UpdateTournamentDto {
   @Min(1)
   teamSizeMax?: number;
 
-  @ApiPropertyOptional({ enum: ['draft', 'registration', 'active', 'finished'] })
+  @ApiPropertyOptional({
+    enum: ['draft', 'registration', 'active', 'finished'],
+  })
   @IsOptional()
   @IsIn(['draft', 'registration', 'active', 'finished'])
   status?: 'draft' | 'registration' | 'active' | 'finished';

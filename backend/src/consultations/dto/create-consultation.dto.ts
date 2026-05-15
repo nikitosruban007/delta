@@ -1,4 +1,12 @@
-import { IsArray, IsDateString, IsOptional, IsString, MaxLength, ArrayUnique, IsNumber } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ArrayUnique,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateConsultationDto {
   @IsString()

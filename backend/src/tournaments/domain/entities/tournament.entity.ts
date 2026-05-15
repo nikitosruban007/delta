@@ -5,7 +5,7 @@ export class Tournament {
     public readonly id: string,
     public title: string,
     public description: string | null,
-    public organizerId: string,
+    public organizerId: string | undefined,
     public status: TournamentStatus,
     public registrationDeadline: Date | null,
     public startsAt: Date | null,

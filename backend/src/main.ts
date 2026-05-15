@@ -3,10 +3,12 @@ import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:3001',
@@ -16,6 +18,11 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+
+  // Serve static files from uploads directory
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -36,7 +43,9 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`Backend running on http://localhost:${process.env.PORT ?? 3000}/api`);
+  console.log(
+    `Backend running on http://localhost:${process.env.PORT ?? 3000}/api`,
+  );
   console.log(`Swagger: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
 }
 

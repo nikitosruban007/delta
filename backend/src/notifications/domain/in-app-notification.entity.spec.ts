@@ -20,7 +20,9 @@ describe('InAppNotification', () => {
     expect(notification.subject).toBe('Subject');
     expect(notification.body).toBe('Body');
     expect(notification.isRead).toBe(false);
-    expect(notification.createdAt).toEqual(new Date('2026-01-01T00:00:00.000Z'));
+    expect(notification.createdAt).toEqual(
+      new Date('2026-01-01T00:00:00.000Z'),
+    );
     expect(notification.readAt).toBeNull();
     expect(notification.toObject()).toEqual({
       id: 'notification-1',

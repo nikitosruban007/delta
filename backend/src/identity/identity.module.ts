@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { MulterModule } from '@nestjs/platform-express';
 import { Reflector } from '@nestjs/core';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AssignRoleUseCase } from './application/use-cases/assign-role.use-case';
@@ -33,6 +34,9 @@ import { RolesGuard } from './presentation/guards/roles.guard';
   imports: [
     PrismaModule,
     PassportModule,
+    MulterModule.register({
+      dest: './uploads/avatars',
+    }),
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '7d' },
@@ -85,24 +89,28 @@ import { RolesGuard } from './presentation/guards/roles.guard';
       provide: SocialLoginUseCase,
       useFactory: (users, tokenService) =>
         new SocialLoginUseCase(users, tokenService),
-      inject: [
-        IDENTITY_TOKENS.USER_REPOSITORY,
-        IDENTITY_TOKENS.TOKEN_SERVICE,
-      ],
+      inject: [IDENTITY_TOKENS.USER_REPOSITORY, IDENTITY_TOKENS.TOKEN_SERVICE],
     },
     {
       provide: AssignRoleUseCase,
       useFactory: (users, roles) => new AssignRoleUseCase(users, roles),
-      inject: [IDENTITY_TOKENS.USER_REPOSITORY, IDENTITY_TOKENS.ROLE_REPOSITORY],
+      inject: [
+        IDENTITY_TOKENS.USER_REPOSITORY,
+        IDENTITY_TOKENS.ROLE_REPOSITORY,
+      ],
     },
     {
       provide: RevokeRoleUseCase,
       useFactory: (users, roles) => new RevokeRoleUseCase(users, roles),
-      inject: [IDENTITY_TOKENS.USER_REPOSITORY, IDENTITY_TOKENS.ROLE_REPOSITORY],
+      inject: [
+        IDENTITY_TOKENS.USER_REPOSITORY,
+        IDENTITY_TOKENS.ROLE_REPOSITORY,
+      ],
     },
     {
       provide: CreateRoleUseCase,
-      useFactory: (roles, permissions) => new CreateRoleUseCase(roles, permissions),
+      useFactory: (roles, permissions) =>
+        new CreateRoleUseCase(roles, permissions),
       inject: [
         IDENTITY_TOKENS.ROLE_REPOSITORY,
         IDENTITY_TOKENS.PERMISSION_REPOSITORY,

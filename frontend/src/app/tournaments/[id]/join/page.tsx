@@ -44,11 +44,14 @@ export default function TournamentJoinPage() {
   const params = useParams<{ id: string }>();
   const tournamentId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const { token, isAuthenticated, user } = useAuth();
+  const { token, isAuthenticated, user, hasRole } = useAuth();
   const [teamName, setTeamName] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [captainQuery, setCaptainQuery] = useState("");
+  const [debouncedCaptainQuery, setDebouncedCaptainQuery] = useState("");
+  const [selectedCaptain, setSelectedCaptain] = useState<Member | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -56,6 +59,14 @@ export default function TournamentJoinPage() {
     const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 250);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedCaptainQuery(captainQuery.trim()),
+      250,
+    );
+    return () => clearTimeout(timer);
+  }, [captainQuery]);
 
   const { data: tournament, isLoading } = useQuery({
     queryKey: ["tournament", tournamentId],
@@ -66,6 +77,13 @@ export default function TournamentJoinPage() {
     queryKey: ["users-search", debouncedQuery],
     queryFn: () => usersApi.search(debouncedQuery, token!),
     enabled: Boolean(token) && debouncedQuery.length >= 2,
+    staleTime: 30_000,
+  });
+
+  const { data: captainSearchResults, isFetching: searchingCaptain } = useQuery({
+    queryKey: ["users-search-captain", debouncedCaptainQuery],
+    queryFn: () => usersApi.search(debouncedCaptainQuery, token!),
+    enabled: Boolean(token) && debouncedCaptainQuery.length >= 2,
     staleTime: 30_000,
   });
 
@@ -102,6 +120,18 @@ export default function TournamentJoinPage() {
     ]);
   };
 
+  const selectCaptain = (candidate: UserSearchResult) => {
+    setCaptainQuery("");
+    setDebouncedCaptainQuery("");
+    setSelectedCaptain({
+      userId: candidate.id,
+      email: candidate.email,
+      fullName: candidate.name,
+      avatarUrl: candidate.avatarUrl,
+      username: candidate.username,
+    });
+  };
+
   const removeMember = (index: number) =>
     setMembers((prev) => prev.filter((_, i) => i !== index));
 
@@ -122,6 +152,14 @@ export default function TournamentJoinPage() {
       return;
     }
 
+    const isOrganizerAction =
+      user?.id === tournament?.organizerId || hasRole("ADMIN");
+    if (isOrganizerAction && !selectedCaptain) {
+      setServerError("Виберіть капітана для цієї команди");
+      setIsSubmitting(false);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await teamsApi.register(
@@ -129,6 +167,8 @@ export default function TournamentJoinPage() {
           tournamentId,
           name: teamName.trim(),
           members: members.map((m) => ({ fullName: m.fullName, email: m.email })),
+          captainId: selectedCaptain?.userId,
+          captainEmail: selectedCaptain?.email,
         },
         token,
       );
@@ -196,6 +236,16 @@ export default function TournamentJoinPage() {
             <p className="mt-2 text-sm text-[#5b5f69]">
               Розмір команди: від {minMembers} до {maxMembers} (включно з капітаном).
             </p>
+            {tournament &&
+              (tournament.status !== "registration" ||
+                (tournament.registrationDeadline &&
+                  new Date(tournament.registrationDeadline).getTime() < Date.now())) &&
+              (user?.id === tournament.organizerId || hasRole("ADMIN")) && (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#fff7ed] px-3 py-2 text-xs font-semibold text-[#9a3412]">
+                  Реєстрація закрита для звичайних учасників. Ви додаєте команду
+                  як організатор турніру.
+                </p>
+              )}
           </div>
 
           <div className="space-y-8 px-5 py-8 md:px-10">
@@ -228,16 +278,71 @@ export default function TournamentJoinPage() {
                   <UsersRound className="size-4" />
                   Капітан
                 </span>
-                <span className="text-xs opacity-80">Це ви</span>
+                <span className="text-xs opacity-80">
+                  {user?.id === tournament?.organizerId || hasRole("ADMIN")
+                    ? "Оберіть капітана"
+                    : "Це ви"}
+                </span>
               </div>
-              <div className="flex items-center gap-3 px-4 py-4 md:px-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4edfa] text-sm font-bold text-[#1B345B]">
-                  {user?.name?.[0]?.toUpperCase() ?? "?"}
-                </div>
-                <div className="text-sm">
-                  <p className="font-semibold">{user?.name}</p>
-                  <p className="text-[#888]">{user?.email}</p>
-                </div>
+              <div className="px-4 py-4 md:px-6">
+                {(user?.id === tournament?.organizerId || hasRole("ADMIN")) ? (
+                  <>
+                    <label className="block">
+                      <span className="mb-2 block text-sm font-semibold text-[#414143]">
+                        Знайти капітана за email або іменем
+                      </span>
+                      <input
+                        value={captainQuery}
+                        onChange={(e) => setCaptainQuery(e.target.value)}
+                        placeholder="Пошук капітана"
+                        className={inputClass}
+                      />
+                    </label>
+                    {captainSearchResults && captainSearchResults.length > 0 && (
+                      <div className="mt-3 space-y-2 rounded-[10px] border border-[#d0d0d2] bg-white p-3">
+                        {captainSearchResults.map((candidate) => (
+                          <button
+                            key={candidate.id}
+                            type="button"
+                            onClick={() => selectCaptain(candidate)}
+                            className="flex w-full items-center justify-between rounded-[8px] border border-transparent px-3 py-2 text-left text-sm transition hover:border-[#c5c5c8] hover:bg-[#f7f7f8]"
+                          >
+                            <div>
+                              <div className="font-semibold text-[#111]">{candidate.name}</div>
+                              <div className="text-[#666]">{candidate.email}</div>
+                            </div>
+                            <span className="text-[#5f72df]">Оберіть</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedCaptain ? (
+                      <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-[#d0d0d2] bg-white px-4 py-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4edfa] text-sm font-bold text-[#1B345B]">
+                          {selectedCaptain.fullName?.[0]?.toUpperCase() ?? "?"}
+                        </div>
+                        <div className="text-sm">
+                          <p className="font-semibold">{selectedCaptain.fullName}</p>
+                          <p className="text-[#888]">{selectedCaptain.email}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm text-[#666]">
+                        Вкажіть капітана команди, щоб продовжити реєстрацію.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e4edfa] text-sm font-bold text-[#1B345B]">
+                      {user?.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                    <div className="text-sm">
+                      <p className="font-semibold">{user?.name}</p>
+                      <p className="text-[#888]">{user?.email}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { DispatchNotificationUseCase } from '../application/use-cases/dispatch-notification.use-case';
 import { ListInAppNotificationsUseCase } from '../application/use-cases/list-in-app-notifications.use-case';
 import { MarkInAppNotificationAsReadUseCase } from '../application/use-cases/mark-in-app-notification-as-read.use-case';
@@ -20,7 +28,8 @@ export class NotificationsController {
   ) {
     this.dispatchNotificationUseCase = dispatchNotificationUseCase;
     this.listInAppNotificationsUseCase = listInAppNotificationsUseCase;
-    this.markInAppNotificationAsReadUseCase = markInAppNotificationAsReadUseCase;
+    this.markInAppNotificationAsReadUseCase =
+      markInAppNotificationAsReadUseCase;
   }
 
   @Post('dispatch')

@@ -31,29 +31,63 @@ import { JwtAuthGuard } from '../../../identity/presentation/guards/jwt-auth.gua
 import { CurrentUser } from '../../../identity/presentation/decorators/current-user.decorator';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
+type AuthUser = {
+  id: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+};
 
 class CreateCriterionDto {
   @ApiProperty() @IsString() @Length(2, 200) title!: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(0, 1000) description?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 1000)
+  description?: string;
   @ApiPropertyOptional({ default: 100 })
-  @IsOptional() @IsInt() @Min(1) @Max(1000)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
   maxScore?: number;
   @ApiPropertyOptional({ default: 1 })
-  @IsOptional() @IsNumber() @Min(0)
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   weight?: number;
-  @ApiPropertyOptional({ description: 'Bind criterion to a specific round; null/omit = whole tournament' })
-  @IsOptional() @IsInt()
+  @ApiPropertyOptional({
+    description:
+      'Bind criterion to a specific round; null/omit = whole tournament',
+  })
+  @IsOptional()
+  @IsInt()
   roundId?: number;
-  @ApiPropertyOptional({ description: 'Parent criterion id, if this is a subcriterion' })
-  @IsOptional() @IsInt()
+  @ApiPropertyOptional({
+    description: 'Parent criterion id, if this is a subcriterion',
+  })
+  @IsOptional()
+  @IsInt()
   parentId?: number;
 }
 
 class UpdateCriterionDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(2, 200) title?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() @Length(0, 1000) description?: string;
-  @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) @Max(1000) maxScore?: number;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(2, 200)
+  title?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 1000)
+  description?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  maxScore?: number;
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) weight?: number;
   @ApiPropertyOptional() @IsOptional() @IsInt() roundId?: number | null;
 }
@@ -89,7 +123,9 @@ export class CriteriaController {
   @ApiOperation({ summary: 'List evaluation criteria for a tournament' })
   async list(@Param('tournamentId') tournamentId: string) {
     const tId = Number(tournamentId);
-    const tournament = await this.prisma.tournaments.findUnique({ where: { id: tId } });
+    const tournament = await this.prisma.tournaments.findUnique({
+      where: { id: tId },
+    });
     if (!tournament) throw new NotFoundException('Tournament not found');
     const rows = await this.prisma.evaluation_criteria.findMany({
       where: { tournament_id: tId },
@@ -101,14 +137,18 @@ export class CriteriaController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create evaluation criterion (owner or admin only)' })
+  @ApiOperation({
+    summary: 'Create evaluation criterion (owner or admin only)',
+  })
   async create(
     @CurrentUser() user: AuthUser,
     @Param('tournamentId') tournamentId: string,
     @Body() dto: CreateCriterionDto,
   ) {
     const tId = Number(tournamentId);
-    const tournament = await this.prisma.tournaments.findUnique({ where: { id: tId } });
+    const tournament = await this.prisma.tournaments.findUnique({
+      where: { id: tId },
+    });
     if (!tournament) throw new NotFoundException('Tournament not found');
     const isAdmin = user.roles.includes('ADMIN');
     if (!isAdmin && tournament.created_by !== Number(user.id)) {
@@ -116,9 +156,13 @@ export class CriteriaController {
     }
 
     if (dto.roundId) {
-      const round = await this.prisma.rounds.findUnique({ where: { id: dto.roundId } });
+      const round = await this.prisma.rounds.findUnique({
+        where: { id: dto.roundId },
+      });
       if (!round || round.tournament_id !== tId) {
-        throw new BadRequestException('Round does not belong to this tournament');
+        throw new BadRequestException(
+          'Round does not belong to this tournament',
+        );
       }
     }
     if (dto.parentId) {
@@ -126,10 +170,14 @@ export class CriteriaController {
         where: { id: dto.parentId },
       });
       if (!parent || parent.tournament_id !== tId) {
-        throw new BadRequestException('Parent criterion does not belong to this tournament');
+        throw new BadRequestException(
+          'Parent criterion does not belong to this tournament',
+        );
       }
       if (parent.parent_id !== null) {
-        throw new BadRequestException('Subcriteria cannot be nested more than one level');
+        throw new BadRequestException(
+          'Subcriteria cannot be nested more than one level',
+        );
       }
     }
 
@@ -150,7 +198,9 @@ export class CriteriaController {
   @Patch(':criterionId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update evaluation criterion (owner or admin only)' })
+  @ApiOperation({
+    summary: 'Update evaluation criterion (owner or admin only)',
+  })
   async update(
     @CurrentUser() user: AuthUser,
     @Param('tournamentId') tournamentId: string,
@@ -159,19 +209,27 @@ export class CriteriaController {
   ) {
     const tId = Number(tournamentId);
     const cId = Number(criterionId);
-    const criterion = await this.prisma.evaluation_criteria.findUnique({ where: { id: cId } });
+    const criterion = await this.prisma.evaluation_criteria.findUnique({
+      where: { id: cId },
+    });
     if (!criterion || criterion.tournament_id !== tId) {
       throw new NotFoundException('Criterion not found');
     }
-    const tournament = await this.prisma.tournaments.findUnique({ where: { id: tId } });
+    const tournament = await this.prisma.tournaments.findUnique({
+      where: { id: tId },
+    });
     const isAdmin = user.roles.includes('ADMIN');
     if (!isAdmin && tournament?.created_by !== Number(user.id)) {
       throw new ForbiddenException('You do not own this tournament');
     }
     if (dto.roundId !== undefined && dto.roundId !== null) {
-      const round = await this.prisma.rounds.findUnique({ where: { id: dto.roundId } });
+      const round = await this.prisma.rounds.findUnique({
+        where: { id: dto.roundId },
+      });
       if (!round || round.tournament_id !== tId) {
-        throw new BadRequestException('Round does not belong to this tournament');
+        throw new BadRequestException(
+          'Round does not belong to this tournament',
+        );
       }
     }
     const row = await this.prisma.evaluation_criteria.update({
@@ -190,7 +248,9 @@ export class CriteriaController {
   @Delete(':criterionId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete evaluation criterion (owner or admin only)' })
+  @ApiOperation({
+    summary: 'Delete evaluation criterion (owner or admin only)',
+  })
   async remove(
     @CurrentUser() user: AuthUser,
     @Param('tournamentId') tournamentId: string,
@@ -198,11 +258,15 @@ export class CriteriaController {
   ) {
     const tId = Number(tournamentId);
     const cId = Number(criterionId);
-    const criterion = await this.prisma.evaluation_criteria.findUnique({ where: { id: cId } });
+    const criterion = await this.prisma.evaluation_criteria.findUnique({
+      where: { id: cId },
+    });
     if (!criterion || criterion.tournament_id !== tId) {
       throw new NotFoundException('Criterion not found');
     }
-    const tournament = await this.prisma.tournaments.findUnique({ where: { id: tId } });
+    const tournament = await this.prisma.tournaments.findUnique({
+      where: { id: tId },
+    });
     const isAdmin = user.roles.includes('ADMIN');
     if (!isAdmin && tournament?.created_by !== Number(user.id)) {
       throw new ForbiddenException('You do not own this tournament');

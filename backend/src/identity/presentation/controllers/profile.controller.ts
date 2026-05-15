@@ -1,5 +1,24 @@
-import { Body, Controller, Get, Patch, BadRequestException, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  BadRequestException,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 import {
   IsInt,
   IsObject,
@@ -29,7 +48,8 @@ class UpdateProfileDto {
   @IsString()
   @MaxLength(40)
   @Matches(/^[a-zA-Z0-9_.-]+$/, {
-    message: 'username may contain only letters, digits, dot, dash and underscore',
+    message:
+      'username may contain only letters, digits, dot, dash and underscore',
   })
   username?: string;
 
@@ -59,7 +79,12 @@ class UpdateProfileDto {
   socialLinks?: Record<string, string>;
 }
 
-type AuthUser = { id: string; email: string; roles: string[]; permissions: string[] };
+type AuthUser = {
+  id: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+};
 
 const PROFILE_SELECT = {
   id: true,
@@ -110,7 +135,10 @@ export class ProfileController {
 
   @Patch('profile')
   @ApiOperation({ summary: 'Update current user profile' })
-  async updateProfile(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
     if (dto.username !== undefined) {
       const taken = await this.prisma.users.findFirst({
         where: { username: dto.username, NOT: { id: Number(user.id) } },
@@ -129,7 +157,9 @@ export class ProfileController {
         ...(dto.age !== undefined && { age: dto.age }),
         ...(dto.skills !== undefined && { skills: dto.skills }),
         ...(dto.company !== undefined && { company: dto.company }),
-        ...(dto.socialLinks !== undefined && { social_links: dto.socialLinks as object }),
+        ...(dto.socialLinks !== undefined && {
+          social_links: dto.socialLinks,
+        }),
         updated_at: new Date(),
       },
       select: PROFILE_SELECT,
@@ -146,5 +176,64 @@ export class ProfileController {
     });
     if (!found) return null;
     return toProfileDto(found);
+  }
+
+  @Post('profile/avatar')
+  @ApiOperation({ summary: 'Upload avatar image' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Avatar image file (max 2MB, jpg/png only)',
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/avatars',
+        filename: (req, file, callback) => {
+          const user = req.user as AuthUser;
+          const uniqueSuffix =
+            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          callback(null, `avatar-${user.id}-${uniqueSuffix}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 2 * 1024 * 1024, // 2MB
+      },
+      fileFilter: (req, file, callback) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+          return callback(
+            new BadRequestException('Only JPG and PNG files are allowed'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async uploadAvatar(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Update user's avatar_url in database
+    const avatarUrl = `/uploads/avatars/${file.filename}`;
+    await this.prisma.users.update({
+      where: { id: Number(user.id) },
+      data: { avatar_url: avatarUrl },
+    });
+
+    return { avatarUrl };
   }
 }

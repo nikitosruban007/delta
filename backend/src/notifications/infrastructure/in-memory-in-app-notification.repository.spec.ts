@@ -2,11 +2,7 @@ import { InAppNotification } from '../domain/in-app-notification.entity';
 import { InMemoryInAppNotificationRepository } from './in-memory-in-app-notification.repository';
 
 describe('InMemoryInAppNotificationRepository', () => {
-  const notification = (
-    id: string,
-    recipientId: string,
-    createdAt: string,
-  ) =>
+  const notification = (id: string, recipientId: string, createdAt: string) =>
     new InAppNotification({
       id,
       recipientId,

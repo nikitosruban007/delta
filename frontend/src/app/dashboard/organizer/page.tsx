@@ -140,15 +140,26 @@ export default function OrganizerDashboardPage() {
         }
     }, [authLoading, user, hasRole, router]);
 
-    const { data: allTournaments, isLoading } = useQuery({
+    const { data: allTournaments, isLoading, error } = useQuery({
         queryKey: ["all-tournaments"],
         queryFn: () => tournamentsApi.list(undefined, token),
         enabled: Boolean(token) && (hasRole("ORGANIZER") || hasRole("ADMIN")),
     });
 
+    useEffect(() => {
+        if (allTournaments) {
+            console.log('[Organizer] All tournaments from API:', allTournaments);
+            console.log('[Organizer] Current user:', user);
+        }
+    }, [allTournaments, user]);
+
     const myTournaments = (allTournaments ?? []).filter(
-        (t) => t.organizerId === user?.id || hasRole("ADMIN"),
+        (t) => hasRole("ADMIN") || (t.organizerId && t.organizerId === user?.id),
     );
+
+    useEffect(() => {
+        console.log('[Organizer] Filtered tournaments:', myTournaments);
+    }, [myTournaments]);
 
     const draft = myTournaments.filter((t) => t.status === "draft");
     const active = myTournaments.filter((t) => t.status === "active" || t.status === "registration");

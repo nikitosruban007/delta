@@ -11,16 +11,15 @@ export interface IPermissionRepository {
     description: string | null;
   } | null>;
 
-  list(): Promise<Array<{
-    id: string;
-    code: string;
-    description: string | null;
-  }>>;
+  list(): Promise<
+    Array<{
+      id: string;
+      code: string;
+      description: string | null;
+    }>
+  >;
 
-  create(input: {
-    code: string;
-    description?: string | null;
-  }): Promise<{
+  create(input: { code: string; description?: string | null }): Promise<{
     id: string;
     code: string;
     description: string | null;

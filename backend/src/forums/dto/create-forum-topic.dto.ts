@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateForumTopicDto {
   @Type(() => Number)

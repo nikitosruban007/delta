@@ -8,6 +8,8 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NOTIFICATION_PORT } from '../ports/notification.port';
 import type { NotificationPort } from '../ports/notification.port';
+import { DispatchNotificationUseCase } from '../../../notifications/application/use-cases/dispatch-notification.use-case';
+import { NotificationChannel } from '../../../notifications/domain/notification-channel.enum';
 
 export interface AssignJudgeInput {
   tournamentId: string;
@@ -22,6 +24,7 @@ export class AssignJudgeUseCase {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
+    private readonly dispatcher: DispatchNotificationUseCase,
   ) {}
 
   async execute(input: AssignJudgeInput) {
@@ -40,30 +43,43 @@ export class AssignJudgeUseCase {
     }
 
     if (stageId !== null) {
-      const round = await this.prisma.rounds.findUnique({ where: { id: stageId } });
+      const round = await this.prisma.rounds.findUnique({
+        where: { id: stageId },
+      });
       if (!round || round.tournament_id !== tournamentId) {
-        throw new BadRequestException('Round does not belong to this tournament');
+        throw new BadRequestException(
+          'Round does not belong to this tournament',
+        );
       }
     }
 
+    // Any active user may be assigned as a judge. The "judge" role is
+    // derived from the existence of a judge_assignments row — there is no
+    // standalone JUDGE role gating who can be picked.
     const judge = await this.prisma.users.findUnique({
       where: { id: judgeId },
-      include: { user_roles_user_roles_user_idTousers: { include: { roles: true } } },
+      select: { id: true, status: true },
     });
     if (!judge) throw new NotFoundException('Judge user not found');
-
-    const isJudge = judge.user_roles_user_roles_user_idTousers.some(
-      (r) => r.roles?.name === 'JUDGE' || r.roles?.name === 'ADMIN',
-    );
-    if (!isJudge) throw new BadRequestException('User does not have JUDGE role');
+    if (judge.status !== 'active') {
+      throw new BadRequestException('User account is not active');
+    }
 
     const existing = await this.prisma.judge_assignments.findFirst({
-      where: { tournament_id: tournamentId, judge_id: judgeId, stage_id: stageId },
+      where: {
+        tournament_id: tournamentId,
+        judge_id: judgeId,
+        stage_id: stageId,
+      },
     });
     const assignment = existing
       ? existing
       : await this.prisma.judge_assignments.create({
-          data: { tournament_id: tournamentId, judge_id: judgeId, stage_id: stageId },
+          data: {
+            tournament_id: tournamentId,
+            judge_id: judgeId,
+            stage_id: stageId,
+          },
         });
 
     await this.notifier.emitToUser(input.judgeId, 'judge.assigned', {
@@ -71,6 +87,19 @@ export class AssignJudgeUseCase {
       tournamentId: input.tournamentId,
       stageId: input.stageId ?? null,
     });
+
+    try {
+      await this.dispatcher.execute({
+        recipients: [{ userId: input.judgeId }],
+        subject: `Вас призначено суддею: ${tournament.title}`,
+        body: input.stageId
+          ? `Вас призначено суддею раунду #${input.stageId} у турнірі «${tournament.title}».`
+          : `Вас призначено суддею турніру «${tournament.title}».`,
+        channels: [NotificationChannel.IN_APP],
+      });
+    } catch (err) {
+      console.warn('[assign-judge] dispatch notification failed', err);
+    }
 
     return {
       id: String(assignment.id),

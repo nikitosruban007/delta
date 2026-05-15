@@ -12,13 +12,17 @@ export class UserMapper {
       };
     }>;
   }) {
-    const roles =
-      user.roles?.map((r) => r.role.name) ?? [];
+    const roles = user.roles?.map((r) => r.role.name) ?? [];
 
-    const permissions =
-      user.roles
-        ? [...new Set(user.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.code)))]
-        : [];
+    const permissions = user.roles
+      ? [
+          ...new Set(
+            user.roles.flatMap((r) =>
+              r.role.permissions.map((p) => p.permission.code),
+            ),
+          ),
+        ]
+      : [];
 
     return {
       id: user.id,

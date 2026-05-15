@@ -6,17 +6,32 @@ import { ConsultationsService } from './consultations.service';
 import { ConsultationsLogger } from './utils/logger';
 import { JwtAuthGuard } from '../identity/presentation/guards/jwt-auth.guard';
 
-const TEST_USER = { id: 'host-1', email: 'host@test.com', roles: [], permissions: [] };
+const TEST_USER = {
+  id: 'host-1',
+  email: 'host@test.com',
+  roles: [],
+  permissions: [],
+};
 
 describe('ConsultationsController (e2e - mocked service)', () => {
   let app: INestApplication;
 
   const mockService = {
-    createConsultation: jest.fn((dto: any, userId: string) => Promise.resolve({ id: 'c1', title: dto.title, createdById: userId })),
-    startConsultation: jest.fn((id: string, userId: string) => Promise.resolve({ id, status: 'ACTIVE', createdById: userId })),
-    joinConsultation: jest.fn((id: string, userId: string) => Promise.resolve({ id: 'p1', consultationId: id, userId })),
-    endConsultation: jest.fn((id: string, userId: string) => Promise.resolve({ id, status: 'ENDED', createdById: userId })),
-    getHistoryForUser: jest.fn((userId: string) => Promise.resolve([{ id: 'c1', createdById: userId }])),
+    createConsultation: jest.fn((dto: any, userId: string) =>
+      Promise.resolve({ id: 'c1', title: dto.title, createdById: userId }),
+    ),
+    startConsultation: jest.fn((id: string, userId: string) =>
+      Promise.resolve({ id, status: 'ACTIVE', createdById: userId }),
+    ),
+    joinConsultation: jest.fn((id: string, userId: string) =>
+      Promise.resolve({ id: 'p1', consultationId: id, userId }),
+    ),
+    endConsultation: jest.fn((id: string, userId: string) =>
+      Promise.resolve({ id, status: 'ENDED', createdById: userId }),
+    ),
+    getHistoryForUser: jest.fn((userId: string) =>
+      Promise.resolve([{ id: 'c1', createdById: userId }]),
+    ),
     getById: jest.fn((id: string) => Promise.resolve({ id })),
   };
 
@@ -46,7 +61,9 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useLogger(false);
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -56,22 +73,28 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockService.createConsultation.mockImplementation((dto: any, userId: string) =>
-      Promise.resolve({ id: 'c1', title: dto.title, createdById: userId })
+    mockService.createConsultation.mockImplementation(
+      (dto: any, userId: string) =>
+        Promise.resolve({ id: 'c1', title: dto.title, createdById: userId }),
     );
-    mockService.startConsultation.mockImplementation((id: string, userId: string) =>
-      Promise.resolve({ id, status: 'ACTIVE', createdById: userId })
+    mockService.startConsultation.mockImplementation(
+      (id: string, userId: string) =>
+        Promise.resolve({ id, status: 'ACTIVE', createdById: userId }),
     );
-    mockService.joinConsultation.mockImplementation((id: string, userId: string) =>
-      Promise.resolve({ id: 'p1', consultationId: id, userId })
+    mockService.joinConsultation.mockImplementation(
+      (id: string, userId: string) =>
+        Promise.resolve({ id: 'p1', consultationId: id, userId }),
     );
-    mockService.endConsultation.mockImplementation((id: string, userId: string) =>
-      Promise.resolve({ id, status: 'ENDED', createdById: userId })
+    mockService.endConsultation.mockImplementation(
+      (id: string, userId: string) =>
+        Promise.resolve({ id, status: 'ENDED', createdById: userId }),
     );
     mockService.getHistoryForUser.mockImplementation((userId: string) =>
-      Promise.resolve([{ id: 'c1', createdById: userId }])
+      Promise.resolve([{ id: 'c1', createdById: userId }]),
     );
-    mockService.getById.mockImplementation((id: string) => Promise.resolve({ id }));
+    mockService.getById.mockImplementation((id: string) =>
+      Promise.resolve({ id }),
+    );
   });
 
   it('/consultations (POST) create', async () => {
@@ -97,7 +120,10 @@ describe('ConsultationsController (e2e - mocked service)', () => {
       .expect((res: any) => {
         expect(res.body.status).toBe('ACTIVE');
       });
-    expect(mockService.startConsultation).toHaveBeenCalledWith('c1', TEST_USER.id);
+    expect(mockService.startConsultation).toHaveBeenCalledWith(
+      'c1',
+      TEST_USER.id,
+    );
   });
 
   it('/consultations/join (POST) join', async () => {
@@ -118,13 +144,20 @@ describe('ConsultationsController (e2e - mocked service)', () => {
       .expect((res: any) => {
         expect(res.body.status).toBe('ENDED');
       });
-    expect(mockService.endConsultation).toHaveBeenCalledWith('c1', TEST_USER.id);
+    expect(mockService.endConsultation).toHaveBeenCalledWith(
+      'c1',
+      TEST_USER.id,
+    );
   });
 
   it('/consultations/signal (POST) exchange', async () => {
     await request(app.getHttpServer())
       .post('/consultations/signal')
-      .send({ consultationId: 'c1', fromUserId: TEST_USER.id, payload: { type: 'offer' } })
+      .send({
+        consultationId: 'c1',
+        fromUserId: TEST_USER.id,
+        payload: { type: 'offer' },
+      })
       .expect(201)
       .expect((res: any) => {
         expect(res.body.ok).toBe(true);
@@ -155,8 +188,13 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
   describe('error handling', () => {
     it('should handle create consultation errors', async () => {
-      mockService.createConsultation.mockRejectedValueOnce(new Error('DB error'));
-      await request(app.getHttpServer()).post('/consultations').send({ title: 'Test', tournament_id: 1 }).expect(500);
+      mockService.createConsultation.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
+      await request(app.getHttpServer())
+        .post('/consultations')
+        .send({ title: 'Test', tournament_id: 1 })
+        .expect(500);
     });
 
     it('should propagate ForbiddenException from service on start', async () => {
@@ -171,7 +209,9 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
     it('should handle start consultation not found', async () => {
       mockService.startConsultation.mockRejectedValueOnce(
-        new (require('@nestjs/common').NotFoundException)('Consultation not found'),
+        new (require('@nestjs/common').NotFoundException)(
+          'Consultation not found',
+        ),
       );
       await request(app.getHttpServer())
         .post('/consultations/start')
@@ -181,7 +221,9 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
     it('should handle join consultation not found', async () => {
       mockService.joinConsultation.mockRejectedValueOnce(
-        new (require('@nestjs/common').NotFoundException)('Consultation not found'),
+        new (require('@nestjs/common').NotFoundException)(
+          'Consultation not found',
+        ),
       );
       await request(app.getHttpServer())
         .post('/consultations/join')
@@ -201,7 +243,9 @@ describe('ConsultationsController (e2e - mocked service)', () => {
 
     it('should handle end consultation not found', async () => {
       mockService.endConsultation.mockRejectedValueOnce(
-        new (require('@nestjs/common').NotFoundException)('Consultation not found'),
+        new (require('@nestjs/common').NotFoundException)(
+          'Consultation not found',
+        ),
       );
       await request(app.getHttpServer())
         .post('/consultations/end')
@@ -210,7 +254,9 @@ describe('ConsultationsController (e2e - mocked service)', () => {
     });
 
     it('should handle list consultations errors', async () => {
-      mockService.getHistoryForUser.mockRejectedValueOnce(new Error('DB error'));
+      mockService.getHistoryForUser.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
       await request(app.getHttpServer()).get('/consultations').expect(500);
     });
   });

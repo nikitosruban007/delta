@@ -7,12 +7,10 @@ export class ConsultationsLogger {
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
-    // eslint-disable-next-line no-console
     console.warn('[consultations] WARN', message, meta ?? '');
   }
 
   error(message: string, meta?: Record<string, unknown>): void {
-    // eslint-disable-next-line no-console
     console.error('[consultations] ERROR', message, meta ?? '');
   }
 }

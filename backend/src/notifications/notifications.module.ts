@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
 import { DispatchNotificationUseCase } from './application/use-cases/dispatch-notification.use-case';
 import { ListInAppNotificationsUseCase } from './application/use-cases/list-in-app-notifications.use-case';
 import { MarkInAppNotificationAsReadUseCase } from './application/use-cases/mark-in-app-notification-as-read.use-case';
@@ -7,12 +8,13 @@ import {
   IN_APP_NOTIFICATION_REPOSITORY,
 } from './application/tokens';
 import { InMemoryEmailGateway } from './infrastructure/in-memory-email.gateway';
-import { InMemoryInAppNotificationRepository } from './infrastructure/in-memory-in-app-notification.repository';
+import { PrismaInAppNotificationRepository } from './infrastructure/prisma-in-app-notification.repository';
 import { resolveNotificationsEmailSettings } from './infrastructure/notification-email-settings';
 import { SmtpEmailGateway } from './infrastructure/smtp-email.gateway';
 import { NotificationsController } from './presentation/notifications.controller';
 
 @Module({
+  imports: [PrismaModule],
   controllers: [NotificationsController],
   providers: [
     DispatchNotificationUseCase,
@@ -32,9 +34,13 @@ import { NotificationsController } from './presentation/notifications.controller
     },
     {
       provide: IN_APP_NOTIFICATION_REPOSITORY,
-      useClass: InMemoryInAppNotificationRepository,
+      useClass: PrismaInAppNotificationRepository,
     },
   ],
-  exports: [EMAIL_GATEWAY, IN_APP_NOTIFICATION_REPOSITORY],
+  exports: [
+    EMAIL_GATEWAY,
+    IN_APP_NOTIFICATION_REPOSITORY,
+    DispatchNotificationUseCase,
+  ],
 })
 export class NotificationsModule {}

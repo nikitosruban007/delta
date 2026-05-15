@@ -9,6 +9,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { NOTIFICATION_PORT } from '../ports/notification.port';
 import type { NotificationPort } from '../ports/notification.port';
 import { LeaderboardCacheService } from '../../../leaderboard/leaderboard-cache.service';
+import { DispatchNotificationUseCase } from '../../../notifications/application/use-cases/dispatch-notification.use-case';
+import { NotificationChannel } from '../../../notifications/domain/notification-channel.enum';
 
 export interface CriterionScoreInput {
   criterionId: number;
@@ -29,6 +31,7 @@ export class ScoreSubmissionUseCase {
     private readonly prisma: PrismaService,
     @Inject(NOTIFICATION_PORT) private readonly notifier: NotificationPort,
     private readonly leaderboardCache: LeaderboardCacheService,
+    private readonly dispatcher: DispatchNotificationUseCase,
   ) {}
 
   async execute(input: ScoreSubmissionInput) {
@@ -52,7 +55,9 @@ export class ScoreSubmissionUseCase {
       },
     });
     if (!assigned) {
-      throw new ForbiddenException('You are not assigned to score this submission');
+      throw new ForbiddenException(
+        'You are not assigned to score this submission',
+      );
     }
 
     // Compute total from criteria if provided; otherwise use explicit total score
@@ -63,7 +68,9 @@ export class ScoreSubmissionUseCase {
         where: { id: { in: criteriaIds }, tournament_id: tournamentId },
       });
       if (dbCriteria.length !== criteriaIds.length) {
-        throw new BadRequestException('Some criteria do not belong to this tournament');
+        throw new BadRequestException(
+          'Some criteria do not belong to this tournament',
+        );
       }
       // Per-round criteria must match the submission's round (if a round is bound)
       for (const def of dbCriteria) {
@@ -94,7 +101,9 @@ export class ScoreSubmissionUseCase {
       }
       totalScore = input.score;
     } else {
-      throw new BadRequestException('Either score or criteria must be provided');
+      throw new BadRequestException(
+        'Either score or criteria must be provided',
+      );
     }
 
     const evaluation = await this.prisma.$transaction(async (tx) => {
@@ -116,7 +125,9 @@ export class ScoreSubmissionUseCase {
           });
 
       if (input.criteria && input.criteria.length > 0) {
-        await tx.evaluation_scores.deleteMany({ where: { evaluation_id: e.id } });
+        await tx.evaluation_scores.deleteMany({
+          where: { evaluation_id: e.id },
+        });
         await tx.evaluation_scores.createMany({
           data: input.criteria.map((c) => ({
             evaluation_id: e.id,
@@ -139,8 +150,29 @@ export class ScoreSubmissionUseCase {
     await this.notifier.emitToTournament(
       String(tournamentId),
       'submission.scored',
-      { submissionId: input.submissionId, evaluationId: evaluation.id, totalScore },
+      {
+        submissionId: input.submissionId,
+        evaluationId: evaluation.id,
+        totalScore,
+      },
     );
+
+    try {
+      const team = await this.prisma.teams.findUnique({
+        where: { id: submission.team_id },
+        select: { name: true, captain_id: true },
+      });
+      if (team?.captain_id) {
+        await this.dispatcher.execute({
+          recipients: [{ userId: String(team.captain_id) }],
+          subject: 'Вашу подачу оцінено',
+          body: `Журі оцінило подачу команди «${team.name}». Поточний бал: ${totalScore.toFixed(2)}.`,
+          channels: [NotificationChannel.IN_APP],
+        });
+      }
+    } catch (err) {
+      console.warn('[score-submission] dispatch notification failed', err);
+    }
 
     return {
       id: evaluation.id,
@@ -188,10 +220,12 @@ export class ScoreSubmissionUseCase {
         const avg = a && a.count > 0 ? a.sum / a.count : 0;
         return { teamId: tid, total: avg };
       })
-      .sort((a, b) => (b.total - a.total) || (a.teamId - b.teamId));
+      .sort((a, b) => b.total - a.total || a.teamId - b.teamId);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.leaderboard_entries.deleteMany({ where: { tournament_id: tournamentId } });
+      await tx.leaderboard_entries.deleteMany({
+        where: { tournament_id: tournamentId },
+      });
       if (ranked.length > 0) {
         await tx.leaderboard_entries.createMany({
           data: ranked.map((r, i) => ({
@@ -205,6 +239,8 @@ export class ScoreSubmissionUseCase {
     });
 
     await this.leaderboardCache.del(`tournament:${tournamentId}:leaderboard`);
-    await this.leaderboardCache.del(`tournament:${tournamentId}:leaderboard:teams`);
+    await this.leaderboardCache.del(
+      `tournament:${tournamentId}:leaderboard:teams`,
+    );
   }
 }

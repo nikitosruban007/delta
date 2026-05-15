@@ -15,6 +15,34 @@ export class ApiError extends Error {
   }
 }
 
+function normalizeAvatarUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (value.startsWith('http')) return value;
+  const baseUrl = API_BASE.replace(/\/api\/?$/, '');
+  return `${baseUrl}${value}`;
+}
+
+function normalizeAvatarUrls<T>(value: T): T {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeAvatarUrls(item)) as unknown as T;
+  }
+
+  if (typeof value === 'object') {
+    return Object.entries(value).reduce((acc, [key, item]) => {
+      acc[key] = key === 'avatarUrl'
+        ? normalizeAvatarUrl(item as string | null)
+        : normalizeAvatarUrls(item as unknown as T);
+      return acc;
+    }, {} as Record<string, unknown>) as T;
+  }
+
+  return value;
+}
+
 // ─── Core fetch wrapper ───────────────────────────────────────────────────────
 
 async function request<T>(
@@ -52,7 +80,8 @@ async function request<T>(
     return undefined as unknown as T;
   }
 
-  return res.json() as Promise<T>;
+  const data = await res.json();
+  return normalizeAvatarUrls(data) as T;
 }
 
 // ─── Shared types (contract with backend) ────────────────────────────────────
@@ -101,16 +130,32 @@ export type Announcement = {
   author: { id: string; name: string; avatarUrl: string | null } | null;
 };
 
+export type LeaderboardCriterionCell = {
+  criterionId: string;
+  title: string;
+  maxScore: number;
+  averageScore: number | null;
+};
+
 export type TeamLeaderboardItem = {
   rank: number;
   teamId: string | null;
   teamName: string;
   totalScore: number;
+  breakdown?: LeaderboardCriterionCell[];
+};
+
+export type LeaderboardCriterionHeader = {
+  id: string;
+  title: string;
+  maxScore: number;
 };
 
 export type TeamLeaderboardResponse = {
   items: TeamLeaderboardItem[];
+  criteria?: LeaderboardCriterionHeader[];
   cache: { key: string; hit: boolean };
+  round?: { id: string; title: string };
 };
 
 export type FinishEvaluationResult = {
@@ -197,11 +242,18 @@ export type LeaderboardResponse = {
 };
 
 export type Notification = {
-  id: number;
-  title: string | null;
-  body: string | null;
+  id: string;
+  recipientId: string;
+  subject: string;
+  body: string;
   isRead: boolean;
   createdAt: string;
+  readAt: string | null;
+};
+
+export type NotificationsListResponse = {
+  recipientId: string;
+  notifications: Notification[];
 };
 
 // ─── Profile type ─────────────────────────────────────────────────────────────
@@ -295,8 +347,44 @@ export const authApi = {
       token,
     }),
 
+  uploadAvatar: (file: File, token: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch(`${API_BASE}/auth/profile/avatar`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new ApiError(res.status, body.message ?? `Failed to upload avatar`, body);
+      }
+      const data = await res.json() as { avatarUrl: string };
+      // If the response contains a relative path, prepend the API base (without /api)
+      const baseUrl = API_BASE.replace(/\/api\/?$/, '');
+      const fullUrl = data.avatarUrl.startsWith('http') 
+        ? data.avatarUrl 
+        : `${baseUrl}${data.avatarUrl}`;
+      return { avatarUrl: fullUrl };
+    });
+  },
+
   getProfile: (token: string) =>
     request<UserProfile>('/auth/profile', { token }),
+};
+
+export type MyTournament = {
+  tournamentId: string;
+  title: string;
+  status: TournamentStatus | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  registrationDeadline: string | null;
+  roles: ('captain' | 'member' | 'organizer' | 'judge')[];
+  teams: { id: string; name: string; isCaptain: boolean }[];
+  judgeStages: { id: string | null; title: string | null }[];
 };
 
 export const usersApi = {
@@ -304,6 +392,184 @@ export const usersApi = {
     const params = new URLSearchParams({ q, limit: String(limit) });
     return request<UserSearchResult[]>(`/users/search?${params.toString()}`, { token });
   },
+  myTournaments: (token: string) =>
+    request<MyTournament[]>(`/users/me/tournaments`, { token }),
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string;
+  username: string | null;
+  avatarUrl: string | null;
+  status: string | null;
+  createdAt: string | null;
+  roles: { id: string; name: string }[];
+};
+
+export type AdminRole = { id: string; name: string; description: string | null };
+
+export type TournamentEvent = {
+  id: string;
+  tournamentId: string;
+  roundId: string | null;
+  title: string;
+  description: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  location: string | null;
+  createdAt: string | null;
+  tournament: { id: string; title: string } | null;
+  round: { id: string; title: string } | null;
+};
+
+export const scheduleApi = {
+  listGlobal: (
+    params: { from?: string; to?: string; limit?: number } = {},
+    token?: string | null,
+  ) => {
+    const q = new URLSearchParams();
+    if (params.from) q.set('from', params.from);
+    if (params.to) q.set('to', params.to);
+    if (params.limit) q.set('limit', String(params.limit));
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return request<TournamentEvent[]>(`/schedule${qs}`, { token });
+  },
+  listForTournament: (tournamentId: string, token?: string | null) =>
+    request<TournamentEvent[]>(`/tournaments/${tournamentId}/schedule`, { token }),
+  create: (
+    tournamentId: string,
+    data: {
+      title: string;
+      description?: string;
+      startsAt: string;
+      endsAt?: string;
+      location?: string;
+      roundId?: number;
+    },
+    token: string,
+  ) =>
+    request<TournamentEvent>(`/tournaments/${tournamentId}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      token,
+    }),
+  update: (
+    eventId: string,
+    data: Partial<{
+      title: string;
+      description: string;
+      startsAt: string;
+      endsAt: string | null;
+      location: string;
+      roundId: number | null;
+    }>,
+    token: string,
+  ) =>
+    request<TournamentEvent>(`/schedule/${eventId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+      token,
+    }),
+  remove: (eventId: string, token: string) =>
+    request<{ ok: boolean }>(`/schedule/${eventId}`, { method: 'DELETE', token }),
+};
+
+export type SearchResponse = {
+  tournaments: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: TournamentStatus | null;
+    createdAt: string | null;
+  }[];
+  topics: {
+    id: string;
+    title: string;
+    tags: string[];
+    category: { id: number; title: string } | null;
+    author: { id: number; name: string } | null;
+  }[];
+  users: {
+    id: string;
+    email: string;
+    username: string | null;
+    name: string;
+    avatarUrl: string | null;
+  }[];
+};
+
+export const searchApi = {
+  search: (q: string, type: 'all' | 'tournaments' | 'topics' | 'users' = 'all', limit = 10) => {
+    const params = new URLSearchParams({ q, type, limit: String(limit) });
+    return request<SearchResponse>(`/search?${params.toString()}`);
+  },
+};
+
+export const certificatesApi = {
+  teamCertificateUrl: (tournamentId: string, teamId: string) =>
+    `${API_BASE}/tournaments/${tournamentId}/certificates/teams/${teamId}`,
+};
+
+export const exportApi = {
+  /** Returns a URL the browser can download (CSV stream). Token passed as Bearer via fetch. */
+  teamLeaderboardUrl: (tournamentId: string) =>
+    `${API_BASE}/tournaments/${tournamentId}/export/teams`,
+  submissionsUrl: (tournamentId: string) =>
+    `${API_BASE}/tournaments/${tournamentId}/export/submissions`,
+  /** Triggers an authenticated CSV download (since <a download> can't carry headers). */
+  async download(url: string, filename: string, token: string) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new ApiError(res.status, `Export failed: ${res.status}`, text);
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  },
+};
+
+export type AdminStats = {
+  users: number;
+  tournaments: number;
+  tournamentsByStatus: Record<string, number>;
+  teams: number;
+  submissions: number;
+  evaluations: number;
+  announcements: number;
+  forumTopics: number;
+  forumPosts: number;
+  openReports: number;
+};
+
+export const adminApi = {
+  stats: (token: string) =>
+    request<AdminStats>(`/users/admin/stats`, { token }),
+  listUsers: (token: string, q?: string, limit = 100) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (q) params.set('q', q);
+    return request<AdminUser[]>(`/users?${params.toString()}`, { token });
+  },
+  listRoles: (token: string) =>
+    request<AdminRole[]>(`/users/roles/all`, { token }),
+  assignRole: (userId: string, roleName: string, token: string) =>
+    request<{ ok: boolean }>(`/users/${userId}/roles/by-name`, {
+      method: 'POST',
+      body: JSON.stringify({ roleName }),
+      token,
+    }),
+  revokeRole: (userId: string, roleName: string, token: string) =>
+    request<{ ok: boolean }>(`/users/${userId}/roles/by-name/${encodeURIComponent(roleName)}`, {
+      method: 'DELETE',
+      token,
+    }),
 };
 
 // ─── Tournaments endpoints ────────────────────────────────────────────────────
@@ -358,19 +624,29 @@ export const tournamentsApi = {
     return request<LeaderboardResponse>(`/tournaments/${id}/leaderboard${qs}`, { token });
   },
 
-  getTeamLeaderboard: (id: string | number, token?: string | null) =>
-    request<TeamLeaderboardResponse>(`/tournaments/${id}/leaderboard/teams`, { token }),
+  getTeamLeaderboard: (id: string | number, token?: string | null, roundId?: string | number) => {
+    const qs = roundId ? `?roundId=${roundId}` : '';
+    return request<TeamLeaderboardResponse>(
+      `/tournaments/${id}/leaderboard/teams${qs}`,
+      { token },
+    );
+  },
 };
 
 // ─── Teams endpoints ──────────────────────────────────────────────────────────
 
 export type TeamMemberInput = { fullName: string; email: string };
 
+export type TeamRegisterInput = {
+  tournamentId: string;
+  name: string;
+  members?: TeamMemberInput[];
+  captainId?: string;
+  captainEmail?: string;
+};
+
 export const teamsApi = {
-  register: (
-    data: { tournamentId: string; name: string; members?: TeamMemberInput[] },
-    token: string,
-  ) =>
+  register: (data: TeamRegisterInput, token: string) =>
     request<Team>('/teams/register', {
       method: 'POST',
       body: JSON.stringify({ ...data, members: data.members ?? [] }),
@@ -518,13 +794,13 @@ export const tournamentManagementApi = {
 
 export const notificationsApi = {
   list: (recipientId: string, token: string) =>
-    request<Notification[]>(`/notifications/in-app/${recipientId}`, { token }),
+    request<NotificationsListResponse>(`/notifications/in-app/${recipientId}`, { token }),
 
   markRead: (notificationId: string, token: string) =>
-    request<void>(`/notifications/in-app/${notificationId}/read`, {
-      method: 'PATCH',
-      token,
-    }),
+    request<{ status: string; notificationId: string; isRead: boolean }>(
+      `/notifications/in-app/${notificationId}/read`,
+      { method: 'PATCH', token },
+    ),
 };
 
 // ─── Forum types ──────────────────────────────────────────────────────────────
@@ -556,9 +832,36 @@ export type ForumTopicDetail = ForumTopicListItem;
 export type ForumPost = {
   id: number;
   topicId: number;
-  content: string;
+  parentId: number | null;
+  content: string | null;
+  isDeleted: boolean;
   createdAt: string;
+  updatedAt: string;
   author: ForumAuthor | null;
+  score: number;
+  upvotes: number;
+  downvotes: number;
+  myVote: 1 | -1 | null;
+  childrenCount: number;
+};
+
+export type ForumVoteResult = {
+  postId: number;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  myVote: 1 | -1 | null;
+};
+
+export type ForumReport = {
+  id: number;
+  status: string;
+  reason: string;
+  createdAt: string | null;
+  resolvedAt: string | null;
+  reporter: { id: number; name: string; email: string } | null;
+  post: { id: number; topicId: number; content: string | null } | null;
+  topic: { id: number; title: string } | null;
 };
 
 export type ForumTopicsResponse = {
@@ -600,15 +903,23 @@ export const forumApi = {
       token,
     }),
 
-  listPosts: (topicId: number | string, params?: { page?: number; limit?: number }) => {
+  listPosts: (
+    topicId: number | string,
+    params?: { page?: number; limit?: number },
+    token?: string | null,
+  ) => {
     const q = new URLSearchParams();
     if (params?.page) q.set('page', String(params.page));
     if (params?.limit) q.set('limit', String(params.limit));
     const qs = q.toString() ? `?${q.toString()}` : '';
-    return request<ForumPostsResponse>(`/forums/topics/${topicId}/posts${qs}`);
+    return request<ForumPostsResponse>(`/forums/topics/${topicId}/posts${qs}`, { token });
   },
 
-  createPost: (topicId: number | string, data: { content: string }, token: string) =>
+  createPost: (
+    topicId: number | string,
+    data: { content: string; parentId?: number },
+    token: string,
+  ) =>
     request<ForumPost>(`/forums/topics/${topicId}/posts`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -618,6 +929,39 @@ export const forumApi = {
   deletePost: (postId: number | string, token: string) =>
     request<void>(`/forums/posts/${postId}`, {
       method: 'DELETE',
+      token,
+    }),
+
+  votePost: (postId: number | string, value: 1 | -1 | 0, token: string) =>
+    request<ForumVoteResult>(`/forums/posts/${postId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ value }),
+      token,
+    }),
+
+  reportPost: (postId: number | string, reason: string, token: string) =>
+    request<{ id: number; status: string }>(`/forums/posts/${postId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      token,
+    }),
+
+  reportTopic: (topicId: number | string, reason: string, token: string) =>
+    request<{ id: number; status: string }>(`/forums/topics/${topicId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      token,
+    }),
+
+  listReports: (
+    token: string,
+    status: 'open' | 'resolved' | 'all' = 'open',
+  ) =>
+    request<ForumReport[]>(`/forums/reports?status=${status}`, { token }),
+
+  resolveReport: (reportId: number | string, token: string) =>
+    request<{ id: number; status: string }>(`/forums/reports/${reportId}/resolve`, {
+      method: 'POST',
       token,
     }),
 };
@@ -715,12 +1059,29 @@ export type SubmissionForJudge = {
   evaluation: { id: number; totalScore: number; comment: string | null } | null;
 };
 
+export type SubmissionForJudgeDetail = SubmissionForJudge & {
+  tournamentStatus: string | null;
+  evaluation:
+    | (NonNullable<SubmissionForJudge["evaluation"]> & {
+        scores: { criterionId: string | null; score: number }[];
+      })
+    | null;
+};
+
 export const judgeApi = {
   listSubmissions: (token: string) =>
     request<SubmissionForJudge[]>('/judges/submissions', { token }),
 
+  getSubmission: (id: string, token: string) =>
+    request<SubmissionForJudgeDetail>(`/judges/submissions/${id}`, { token }),
+
   score: (
-    data: { submissionId: string; score: number; comment?: string },
+    data: {
+      submissionId: string;
+      score?: number;
+      criteria?: { criterionId: number; score: number }[];
+      comment?: string;
+    },
     token: string,
   ) =>
     request<Evaluation>('/judges/score', {

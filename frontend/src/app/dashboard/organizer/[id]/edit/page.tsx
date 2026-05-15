@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Loader2, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Loader2, Save } from "lucide-react";
 
 import BrandMark from "@/components/shared/BrandMark";
 import Footer from "@/components/shared/Footer";
+import { CriteriaEditor } from "@/components/organizer/CriteriaEditor";
+import { ScheduleEditor } from "@/components/organizer/ScheduleEditor";
 import {
+  certificatesApi,
+  exportApi,
   tournamentManagementApi,
   tournamentsApi,
   ApiError,
@@ -40,6 +44,12 @@ export default function EditTournamentPage() {
     queryKey: ["tournament", id],
     queryFn: () => tournamentsApi.getById(id, token),
     enabled: Boolean(token),
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ["tournament-teams", id],
+    queryFn: () => tournamentsApi.getTeams(id, token),
+    enabled: Boolean(token && tournament?.status === "finished"),
   });
 
   const [title, setTitle] = useState("");
@@ -311,6 +321,94 @@ export default function EditTournamentPage() {
             Зберегти
           </button>
         </form>
+
+        {token && id && (
+          <div className="mt-8">
+            <CriteriaEditor tournamentId={id} token={token} />
+          </div>
+        )}
+
+        {token && id && (
+          <div className="mt-8">
+            <ScheduleEditor tournamentId={id} token={token} />
+          </div>
+        )}
+
+        {token && id && (
+          <div className="mt-8 rounded-[12px] border border-[#dadce5] bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-[#111]">Експорт</h3>
+            <p className="mt-1 text-xs text-[#5b5f69]">
+              Завантажити дані турніру у форматі CSV.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  exportApi.download(
+                    exportApi.teamLeaderboardUrl(id),
+                    `tournament-${id}-teams.csv`,
+                    token,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-md bg-[#1B345B] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#15294a]"
+              >
+                <Download className="size-4" />
+                Лідерборд команд (CSV)
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  exportApi.download(
+                    exportApi.submissionsUrl(id),
+                    `tournament-${id}-submissions.csv`,
+                    token,
+                  )
+                }
+                className="inline-flex items-center gap-2 rounded-md bg-[#5f72df] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4d63cd]"
+              >
+                <Download className="size-4" />
+                Сабміти + оцінки (CSV)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {token && id && tournament?.status === "finished" && teams.length > 0 && (
+          <div className="mt-8 rounded-[12px] border border-[#dadce5] bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-[#111]">
+              Сертифікати команд (PDF)
+            </h3>
+            <p className="mt-1 text-xs text-[#5b5f69]">
+              Завантажте персональний PDF-сертифікат для кожної команди.
+            </p>
+            <ul className="mt-4 grid gap-2 md:grid-cols-2">
+              {teams.map((team) => (
+                <li
+                  key={team.id}
+                  className="flex items-center justify-between rounded-lg border border-[#e6e8ef] bg-[#fafbff] px-4 py-2.5"
+                >
+                  <span className="truncate text-sm font-semibold text-[#111]">
+                    {team.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      exportApi.download(
+                        certificatesApi.teamCertificateUrl(id, team.id),
+                        `certificate-${team.name.replace(/[^a-zA-Z0-9-]+/g, "_").slice(0, 40) || "team"}.pdf`,
+                        token,
+                      )
+                    }
+                    className="inline-flex items-center gap-1 rounded-md bg-[#1B345B] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#15294a]"
+                  >
+                    <Download className="size-3.5" />
+                    PDF
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <Footer />

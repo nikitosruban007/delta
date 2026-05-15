@@ -10,7 +10,9 @@ describe('ForumsModule exports', () => {
     expect(Reflect.getMetadata('controllers', ForumsModule)).toContain(
       ForumsController,
     );
-    expect(Reflect.getMetadata('providers', ForumsModule)).toContain(ForumsService);
+    expect(Reflect.getMetadata('providers', ForumsModule)).toContain(
+      ForumsService,
+    );
   });
 
   it('re-exports public forum backend APIs from the barrel file', () => {

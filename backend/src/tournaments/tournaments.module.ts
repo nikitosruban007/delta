@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { IdentityModule } from '../identity/identity.module';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TournamentsController } from './presentation/controllers/tournaments.controller';
 import { StagesController } from './presentation/controllers/stages.controller';
 import { TeamsController } from './presentation/controllers/teams.controller';
@@ -9,6 +10,7 @@ import { SubmissionsController } from './presentation/controllers/submissions.co
 import { AnnouncementsController } from './presentation/controllers/announcements.controller';
 import { JudgesController } from './presentation/controllers/judges.controller';
 import { CriteriaController } from './presentation/controllers/criteria.controller';
+import { ScheduleController } from './presentation/controllers/schedule.controller';
 import { TournamentWsGateway } from './infrastructure/websocket/tournaments.gateway';
 import { PrismaTournamentRepository } from './infrastructure/prisma/tournament.repository';
 import { TournamentCacheService } from './infrastructure/redis/tournament-cache.service';
@@ -32,7 +34,12 @@ import { CACHE_PORT } from './application/ports/cache.port';
 import { NOTIFICATION_PORT } from './application/ports/notification.port';
 
 @Module({
-  imports: [PrismaModule, IdentityModule, LeaderboardModule],
+  imports: [
+    PrismaModule,
+    IdentityModule,
+    LeaderboardModule,
+    NotificationsModule,
+  ],
   controllers: [
     TournamentsController,
     StagesController,
@@ -41,6 +48,7 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port';
     AnnouncementsController,
     JudgesController,
     CriteriaController,
+    ScheduleController,
   ],
   providers: [
     { provide: TOURNAMENT_REPOSITORY, useClass: PrismaTournamentRepository },

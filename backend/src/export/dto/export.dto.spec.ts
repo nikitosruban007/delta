@@ -13,6 +13,8 @@ describe('ExportResultsQueryDto', () => {
     const dto = new ExportResultsQueryDto();
     dto.format = 'xlsx' as any;
 
-    expect(validateSync(dto).map((error) => error.property)).toEqual(['format']);
+    expect(validateSync(dto).map((error) => error.property)).toEqual([
+      'format',
+    ]);
   });
 });

@@ -54,12 +54,16 @@ const createPrismaMock = () => {
           participants.set(participant.id, participant);
         }
 
-        return Promise.resolve(include?.participants ? withParticipants(consultation) : consultation);
+        return Promise.resolve(
+          include?.participants ? withParticipants(consultation) : consultation,
+        );
       }),
       findUnique: jest.fn(({ where, include }) => {
         const consultation = consultations.get(where.id) ?? null;
         if (!consultation) return Promise.resolve(null);
-        return Promise.resolve(include?.participants ? withParticipants(consultation) : consultation);
+        return Promise.resolve(
+          include?.participants ? withParticipants(consultation) : consultation,
+        );
       }),
       update: jest.fn(({ where, data }) => {
         const current = consultations.get(where.id);
@@ -84,7 +88,9 @@ const createPrismaMock = () => {
               ),
           )
           .map((consultation) =>
-            include?.participants ? withParticipants(consultation) : consultation,
+            include?.participants
+              ? withParticipants(consultation)
+              : consultation,
           )
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -138,8 +144,7 @@ describe('Consultations (e2e)', () => {
         ConsultationsLogger,
         { provide: PrismaService, useValue: prisma },
       ],
-    })
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(

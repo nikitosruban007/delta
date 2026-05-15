@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateConsultationDto } from './dto/create-consultation.dto';
 import { ConsultationStatus } from './enums/consultation-status.enum';
 import { ParticipantRole } from './enums/participant-role.enum';
@@ -7,10 +11,19 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ConsultationsService {
-  constructor(private readonly prisma: PrismaService, private readonly logger: ConsultationsLogger) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: ConsultationsLogger,
+  ) {}
 
   async createConsultation(dto: CreateConsultationDto, createdById: string) {
-    const { title, description, scheduledAt, tournament_id, participantIds = [] } = dto;
+    const {
+      title,
+      description,
+      scheduledAt,
+      tournament_id,
+      participantIds = [],
+    } = dto;
 
     const roomId = crypto.randomUUID();
 
@@ -34,7 +47,10 @@ export class ConsultationsService {
       include: { participants: true },
     });
 
-    this.logger.info('Consultation created', { consultationId: consultation.id, createdById });
+    this.logger.info('Consultation created', {
+      consultationId: consultation.id,
+      createdById,
+    });
 
     return this.mapConsultation(consultation);
   }
@@ -54,7 +70,10 @@ export class ConsultationsService {
       data: { status: ConsultationStatus.ACTIVE, startedAt: new Date() },
     });
 
-    this.logger.info('Consultation started', { consultationId, startedBy: userId });
+    this.logger.info('Consultation started', {
+      consultationId,
+      startedBy: userId,
+    });
     return this.mapConsultation(updated);
   }
 
@@ -65,10 +84,17 @@ export class ConsultationsService {
     });
     if (!consultation) throw new NotFoundException('Consultation not found');
 
-    let participant = consultation.participants.find((p) => p.userId === userId);
+    let participant = consultation.participants.find(
+      (p) => p.userId === userId,
+    );
     if (!participant) {
       participant = await this.prisma.consultationParticipant.create({
-        data: { consultationId, userId, role: ParticipantRole.PARTICIPANT, joinedAt: new Date() },
+        data: {
+          consultationId,
+          userId,
+          role: ParticipantRole.PARTICIPANT,
+          joinedAt: new Date(),
+        },
       });
     } else {
       participant = await this.prisma.consultationParticipant.update({
@@ -95,7 +121,9 @@ export class ConsultationsService {
   }
 
   async endConsultation(consultationId: string, userId: string) {
-    const consultation = await this.prisma.consultation.findUnique({ where: { id: consultationId } });
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id: consultationId },
+    });
     if (!consultation) throw new NotFoundException('Consultation not found');
     if (consultation.createdById !== userId) {
       throw new ForbiddenException('Only host can end consultation');
@@ -122,10 +150,7 @@ export class ConsultationsService {
   async getHistoryForUser(userId: string) {
     const consultations = await this.prisma.consultation.findMany({
       where: {
-        OR: [
-          { createdById: userId },
-          { participants: { some: { userId } } },
-        ],
+        OR: [{ createdById: userId }, { participants: { some: { userId } } }],
       },
       include: { participants: true },
       orderBy: { createdAt: 'desc' },

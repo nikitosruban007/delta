@@ -32,7 +32,28 @@ export class RegisterTeamDto {
   @Length(2, 120)
   name!: string;
 
-  @ApiProperty({ type: [TeamMemberDto], description: 'Team members (captain implicit; supply additional members here)' })
+  @ApiProperty({
+    required: false,
+    description:
+      'Captain ID (optional for non-organizers; required for organizers)',
+  })
+  @IsString()
+  @IsOptional()
+  captainId?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Captain email (optional for non-organizers; required for organizers)',
+  })
+  @IsEmail()
+  @IsOptional()
+  captainEmail?: string;
+
+  @ApiProperty({
+    type: [TeamMemberDto],
+    description: 'Team members (captain not included here; only other members)',
+  })
   @IsArray()
   @ArrayMinSize(0)
   @ArrayMaxSize(20)

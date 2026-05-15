@@ -3,7 +3,10 @@ import { CachePort } from '../../application/ports/cache.port';
 
 @Injectable()
 export class TournamentCacheService implements CachePort {
-  private readonly store = new Map<string, { expiresAt: number; value: unknown }>();
+  private readonly store = new Map<
+    string,
+    { expiresAt: number; value: unknown }
+  >();
 
   async get<T>(key: string): Promise<T | null> {
     const item = this.store.get(key);

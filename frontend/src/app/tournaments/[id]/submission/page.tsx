@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Edit3, Eye, Loader2, Lock, Send, Video } from "lucide-react";
+import { Award, ArrowLeft, Download, Edit3, Eye, Loader2, Lock, Send, Video } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -10,7 +10,7 @@ import BrandMark from "@/components/shared/BrandMark";
 import { AccentDot, DotGrid } from "@/components/shared/Decor";
 import Footer from "@/components/shared/Footer";
 import { useAuth } from "@/contexts/auth-context";
-import { tournamentsApi, submissionsApi, ApiError } from "@/lib/api";
+import { certificatesApi, exportApi, tournamentsApi, submissionsApi, ApiError } from "@/lib/api";
 
 function formatDeadline(deadline: string | null): string {
   if (!deadline) return "—";
@@ -210,6 +210,29 @@ export default function TournamentSubmissionPage() {
                 <Lock className="size-4" />
                 Дедлайн раунду минув ({formatDeadline(teamSubmission?.deadlineAt ?? null)}). Редагування заблоковано.
               </p>
+            )}
+
+            {tournament?.status === "finished" && myTeam && token && (
+              <div className="flex flex-col gap-2 rounded-lg border border-[#dcfce7] bg-[#f0fdf4] px-4 py-3 text-sm text-[#166534] md:flex-row md:items-center md:justify-between">
+                <span className="inline-flex items-center gap-2 font-semibold">
+                  <Award className="size-4" />
+                  Турнір завершено. Можете завантажити сертифікат команди.
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    exportApi.download(
+                      certificatesApi.teamCertificateUrl(tournamentId, myTeam.id),
+                      `certificate-${myTeam.name.replace(/[^a-zA-Z0-9-]+/g, "_").slice(0, 40) || "team"}.pdf`,
+                      token,
+                    )
+                  }
+                  className="inline-flex items-center gap-2 rounded-md bg-[#166534] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#125227]"
+                >
+                  <Download className="size-3.5" />
+                  Сертифікат (PDF)
+                </button>
+              </div>
             )}
 
             {rounds && rounds.length > 0 && (
